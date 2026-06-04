@@ -1,0 +1,499 @@
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. d4 Nc6 2. e4 Nb4 3. Nc3 Nd5 4. Nxd5 Nf6 5. Nxf6+ exf6 6. c3 Ba3 7. bxa3 Rf8 8. h4 g6 9. Bh6 g5 10. Rh3 gxh4 11. Rc1 Rh8 12. Qh5 Rg8 13. e5 Rxg2 14. Bxg2 d5 15. Rxh4 Bh3 16. Rxh3 a5 17. Rg3 Kd7 18. Bh3+ Kc6 19. Rb1 Rc8 20. Qxf7 Qd6 21. Bxc8 Qxe5+ 22. Re3 Qxe3+ 23. Bxe3 Kd6 24. Bf4+ Kc6 25. Qe6# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. e3 Nh6 2. Nf3 Ng4 3. h3 Nxf2 4. Kxf2 Nc6 5. d4 Nxd4 6. Qxd4 h5 7. Bd3 Rh6 8. e4 h4 9. e5 Rh5 10. Be3 Rg5 11. Bxg5 f5 12. Bc4 d5 13. Bd3 g6 14. Qb4 Qd6 15. Qa4+ Kf7 16. exd6 f4 17. dxe7 Bxh3 18. Qxf4+ Bf5 19. Rxh4 a5 20. Qe5 Bxd3 21. Qf6+ Ke8 22. exf8=R+ 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 Nf6 2. Ng5 d5 3. Ne6 Bxe6 4. Nc3 c5 5. Nxd5 Qxd5 6. Rg1 a6 7. Rb1 c4 8. Rh1 g6 9. Rg1 Nc6 10. Rh1 Bg7 11. h4 Rd8 12. h5 Bf5 13. h6 Kf8 14. hxg7+ Kxg7 15. Rxh7+ Nxh7 16. g4 Bc8 17. Bh3 e5 18. Bg2 e4 19. Bxe4 Qd6 20. Bxg6 Nf8 21. Bh7 Nxh7 22. g5 Nf8 23. g6 Rh1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 d5 2. Ng5 h6 3. Nh7 Rxh7 4. Nc3 d4 5. Nd5 e5 6. Nf6+ Qxf6 7. h4 g6 8. Rh3 a5 9. Rh1 e4 10. h5 Rg7 11. hxg6 Nc6 12. gxf7+ Kxf7 13. Rxh6 Qxh6 14. Rb1 Bg4 15. g3 Bb4 16. f4 exf3 17. e4 Qe3+ 18. Be2 Qg1+ 19. Bf1 Qxg3# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nf3 Nh6 2. h3 Nc6 3. d4 Ng4 4. hxg4 Nxd4 5. Nxd4 h5 6. Rxh5 Rxh5 7. gxh5 g5 8. c3 g4 9. e4 g3 10. fxg3 Bh6 11. Bxh6 Rb8 12. Nf5 b5 13. Qg4 c5 14. Qg8# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. h4 e5 2. Rh3 Nf6 3. Rg3 d5 4. Rxg7 Bxg7 5. Nh3 d4 6. Ng5 O-O 7. Nxh7 Nxh7 8. Nc3 Nc6 9. Nd5 f5 10. Ne7+ Nxe7 11. h5 f4 12. g4 Bxg4 13. h6 Bxh6 14. Bh3 Qc8 15. Bxg4 Qxg4 16. e4 Qg1+ 17. Ke2 f3+ 18. Kd3 Qxd1 19. Kc4 b5+ 20. Kc5 Qxc2+ 21. Kxb5 Rab8+ 22. Ka6 Qa4# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nh3 Nh6 2. d4 Ng4 3. Nf4 Ne3 4. Bxe3 a5 5. h4 a4 6. a3 Nc6 7. g3 Nxd4 8. Bxd4 Rg8 9. Bc3 h5 10. Bg2 g5 11. Nxh5 gxh4 12. Rxh4 Ra5 13. Nf6+ exf6 14. Bxa5 Bg7 15. Qd4 Rh8 16. Qe4+ Qe7 17. Bxc7 Rh5 18. Qxe7+ Kxe7 19. Rxh5 Bh6 20. Rxh6 d5 21. Bxd5 Kf8 22. Rh8+ Ke7 23. Rxc8 b5 24. Nc3 b4 25. Nxa4 b3 26. Bd8+ Kd6 27. Bxf7 Ke5 28. Rc5+ Kd4 29. e3+ Ke4 30. Bd5+ Ke5 31. Bf7+ Ke4 32. Bd5+ Ke5 33. Bxb3+ Ke4 34. Rc4+ Kf3 35. Bxf6 Kg2 36. Rf4 Kh1 37. g4 Kg1 38. g5 Kh1 39. g6 Kg1 40. g7 Kh1 41. g8=Q Kh2 42. Rh4# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. h4 Nh6 2. Nf3 Nf5 3. g4 Ne3 4. fxe3 Rg8 5. d4 h5 6. g5 Nc6 7. c4 Ne5 8. Nxe5 Rb8 9. Bg2 f5 10. Bf3 f4 11. exf4 Rh8 12. Nc3 Rh6 13. gxh6 g5 14. Bxh5# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e6 2. Ng5 Qxg5 3. h4 Qa5 4. h5 d5 5. Rh4 c5 6. Rg4 Nf6 7. Rxg7 h6 8. Rg8 Nxg8 9. g4 Bg7 10. g5 Qc7 11. Bh3 d4 12. Bxe6 Bxe6 13. gxh6 Bxh6 14. e4 Qf4 15. Qg4 Bxg4 16. e5 c4 17. e6 Nd7 18. exf7+ Kxf7 19. Kf1 Bh3+ 20. Ke2 Qe5+ 21. Kf3 Qxh5+ 22. Ke4 Bg7 23. Kf4 Qg4# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nh3 Nc6 2. e4 Nh6 3. Be2 Ng4 4. Bxg4 Nb4 5. Bf3 Nd3+ 6. cxd3 Rg8 7. d4 h5 8. d5 h4 9. d4 g5 10. Nxg5 h3 11. g3 a5 12. Be2 a4 13. Nf3 a3 14. bxa3 Rxg3 15. Nc3 Rxa3 16. Qc2 Rg1+ 17. Nxg1 f5 18. Bh5# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. d4 Nh6 2. e4 Ng4 3. Qxg4 Na6 4. Qe2 Nb4 5. Na3 Nd5 6. exd5 h5 7. Nh3 h4 8. Nc4 g5 9. a4 Rh5 10. a5 Bh6 11. g3 hxg3 12. Qxh5 g2 13. Bxg2 Bg7 14. Bxg5 Be5 15. Nxe5 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 Nf6 2. Ng5 h6 3. Nh7 Rxh7 4. Nc3 d6 5. Nd5 Nxd5 6. Rg1 e6 7. a4 a5 8. Ra3 g6 9. Rh1 c6 10. Rg1 Bg7 11. Rh3 e5 12. Rxh6 Rh8 13. Rxh8+ Bxh8 14. g3 e4 15. Rh1 Be6 16. g4 Bg7 17. Rg1 Nd7 18. Rg3 Be5 19. g5 Bxg3 20. h4 Be5 21. h5 Qxg5 22. Bh3 Nf4 23. Bf5 Qg1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 Nf6 2. Ng5 e5 3. Nxh7 Nxh7 4. Rg1 Nc6 5. Nc3 Be7 6. Nd5 d6 7. Nxe7 Kxe7 8. h4 Nf8 9. g4 Rxh4 10. Rh1 Rxg4 11. Rh8 a5 12. Rg8 Bf5 13. Rh8 f6 14. Rg8 Qe8 15. f4 Qf7 16. Bh3 Rg1+ 17. Bf1 Rd8 18. fxe5 fxe5 19. e4 Qxg8 20. Kf2 Rg5 21. Bh3 Bxh3 22. Ke3 Qc4 23. Qh5 Qd4+ 24. Kf3 Rxh5 25. d3 Ng6 26. Bh6 Rf8+ 27. Bf4 Rg5 28. Rf1 exf4 29. Ke2 Rg2+ 30. Kf3 Nge5# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nf3 Nf6 2. d4 Rg8 3. g3 b5 4. Nc3 h5 5. Nxb5 Ne4 6. Bf4 Nxf2 7. Qc1 Nd1 8. Qxd1 h4 9. Bg2 h3 10. Bf1 g5 11. Nxc7+ Qxc7 12. Bxc7 g4 13. Nd2 Rg5 14. Bf4 Rf5 15. e3 Rxf4 16. gxf4 g3 17. Rg1 g2 18. Bc4 Bh6 19. Qh5 Bxf4 20. Qh8# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e6 2. Ng5 Qxg5 3. Rg1 Qh4 4. g4 d5 5. g5 Bd6 6. Rg4 Qxg4 7. g6 Qxg6 8. Bh3 Nc6 9. Bxe6 Qg1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e5 2. Ng5 Qxg5 3. Nc3 Qg6 4. Nd5 Na6 5. Ne7 Bxe7 6. Rg1 Bh4 7. g4 Nh6 8. Rg3 e4 9. Rh3 Qxg4 10. Rxh4 Qxh4 11. h3 d5 12. Bg2 Ng4 13. Bxe4 Qxf2# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e6 2. Ng5 Qxg5 3. Rg1 Qh5 4. Rh1 Qg6 5. Rg1 a6 6. Rh1 d6 7. Rg1 Nc6 8. Nc3 d5 9. Rh1 d4 10. Nd5 Bd6 11. Nf6+ gxf6 12. h4 f5 13. h5 Qg7 14. h6 Nxh6 15. Rxh6 Qxh6 16. g4 e5 17. gxf5 Rg8 18. f6 Qh4 19. Bh3 Qxh3 20. f3 Rg1+ 21. Kf2 Qg2# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. d4 Nh6 2. Bxh6 Nc6 3. Be3 Rg8 4. c3 Nxd4 5. cxd4 h5 6. g3 a5 7. Nh3 Rh8 8. a3 a4 9. d5 h4 10. Bg2 hxg3 11. hxg3 Rb8 12. Qxa4 Rxh3 13. Rxh3 g5 14. Nd2 g4 15. Rh7 f5 16. Bd4 f4 17. Qc2 Bh6 18. Qg6+ Kf8 19. Qf7# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nf3 Nc6 2. e3 Ne5 3. Nxe5 Nh6 4. Na3 Ng4 5. Qxg4 Rb8 6. Qf4 a5 7. Qxf7# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. h4 Nh6 2. e4 Ng4 3. Qxg4 Na6 4. Qg3 Rg8 5. d4 Nc5 6. dxc5 h5 7. Qf3 g5 8. hxg5 h4 9. Ne2 h3 10. g4 h2 11. Rxh2 f5 12. Ng3 Rh8 13. gxf5 Rxh2 14. Nc3 Rh1 15. Nxh1 Bg7 16. Ng3 Bxc3+ 17. Qxc3 e5 18. Be2 d5 19. Qxe5+ Kd7 20. Qe6# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nc3 d5 2. Nh3 e5 3. Ng5 d4 4. Nxh7 Rxh7 5. Nd5 Qxd5 6. Rg1 Rh6 7. Rb1 Qxa2 8. h4 Qxb1 9. g4 Rxh4 10. g5 Nc6 11. g6 Nh6 12. gxf7+ Nxf7 13. Rxg7 Bxg7 14. Bh3 Bxh3 15. e3 Bg4 16. Qxg4 Rxg4 17. exd4 Nxd4 18. Kd1 Rg1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nc3 Nh6 2. d4 Nc6 3. d5 Ng4 4. e4 Nxh2 5. Rxh2 h5 6. Rxh5 Rg8 7. dxc6 Rh8 8. Rxh8 g5 9. cxb7 g4 10. Rxf8+ Kxf8 11. Bh6+ Kg8 12. bxa8=Q g3 13. Qf3 gxf2+ 14. Kxf2 f5 15. Qh5 Kh7 16. Nf3 Qh8 17. Ng5+ Kg8 18. Qg6+ Qg7 19. Qxg7# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e5 2. Nf4 exf4 3. e4 Qe7 4. e5 Nc6 5. Bb5 Qxe5+ 6. Kf1 Qf6 7. Bxc6 dxc6 8. Qh5 Qf5 9. Qh6 Nxh6 10. h4 Qb5+ 11. Kg1 Bc5 12. Nc3 Qa6 13. h5 Ng4 14. h6 Bxf2# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. h4 Nh6 2. Nf3 Ng4 3. h5 Nxf2 4. Kxf2 g5 5. d4 a5 6. Bxg5 f5 7. e3 Nc6 8. Bf4 a4 9. d5 Bg7 10. c3 Bxc3 11. Nxc3 Rg8 12. a3 Rxg2+ 13. Bxg2 h6 14. dxc6 Kf7 15. Qd5+ Kf6 16. Be5# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nc3 d5 2. Nh3 d4 3. Ng5 dxc3 4. Nxf7 Kxf7 5. h4 Ke8 6. h5 Nh6 7. Rh4 e5 8. Rg4 Nxg4 9. h6 Qh4 10. g3 Qh2 11. Bh3 Qxf2# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 d5 2. Ng5 e5 3. Nxh7 Rxh7 4. Rg1 Nc6 5. Nc3 Nf6 6. Nxd5 Nxd5 7. Rh1 Rh6 8. Rg1 Rd6 9. Rh1 a5 10. Rg1 Qh4 11. g4 Be6 12. Rg3 g6 13. g5 e4 14. Rg4 Qxg4 15. Bh3 Qxg5 16. Bxe6 Qg1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nc3 b5 2. a4 bxa4 3. Nf3 a3 4. e4 axb2 5. Bxb2 Bb7 6. Bc4 Bxe4 7. Bxf7+ Kxf7 8. Ne5+ Ke6 9. O-O Bd3 10. Qg4+ Bf5 11. Qd4 Nh6 12. g4 g5 13. Qd5+ 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. g3 Nf6 2. Nh3 d5 3. Ng5 h6 4. Nh7 Nxh7 5. Rg1 Nf6 6. Rh1 e5 7. Bh3 Nc6 8. Bxc8 Rxc8 9. Rg1 e4 10. Rh1 a6 11. Nc3 d4 12. Nd5 Nxd5 13. Rg1 Nf6 14. h4 Qd7 15. Rh1 Rb8 16. h5 Qd5 17. Rh4 Be7 18. g4 Qe6 19. g5 Nd5 20. Rg4 Qxg4 21. gxh6 Qg1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nc3 Nh6 2. e3 Nf5 3. d4 Rg8 4. Qh5 Nxe3 5. Bxe3 a5 6. d5 a4 7. Qxh7 a3 8. Bb5 axb2 9. Rb1 Rxa2 10. Nf3 Ra1 11. Bd4 Rxb1+ 12. Nxb1 Rh8 13. Bxd7+ Kxd7 14. Qxh8 Na6 15. Bxb2 g5 16. Ne5+ Kd6 17. Nxf7+ Kxd5 18. Nc3+ Kc5 19. Ne4+ Kb4 20. Nxd8 g4 21. Qxf8 g3 22. Nc3 gxf2+ 23. Kd2 f1=Q 24. Rxf1 Bh3 25. Rf3 Bxg2 26. Na2+ Ka4 27. Rg3 Kb5 28. Qf7 Ka4 29. Qxe7 Bf3 30. Rxf3 Kb5 31. Rb3+ Nb4 32. Qxb4+ Ka6 33. Qa4# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nf3 h5 2. d4 g5 3. Bxg5 e5 4. Bxd8 exd4 5. Bh4 Ba3 6. Qxd4 Bxb2 7. Qxb2 Nh6 8. Qxh8+ Ng8 9. Qxg8# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. g3 h5 2. Nf3 h4 3. d4 h3 4. e4 Rh4 5. gxh4 Nf6 6. Nc3 d5 7. exd5 g5 8. Bb5+ c6 9. dxc6 gxh4 10. cxb7+ Nc6 11. Bxc6+ Nd7 12. bxa8=Q Qa5 13. Qxc8+ 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e5 2. Ng5 Qxg5 3. h4 Qg6 4. Nc3 h5 5. Rh3 d5 6. Rg3 Qh7 7. Rxg7 Qxg7 8. Nxd5 Bd6 9. Ne7 Be6 10. Nxg8 Rxg8 11. g4 Qxg4 12. Bh3 Qxh3 13. Rb1 Rg1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nf3 Nf6 2. d4 Ne4 3. Nbd2 Nc6 4. Nxe4 Nxd4 5. Qxd4 h5 6. c4 h4 7. h3 Rg8 8. c5 Rh8 9. Bd2 Rb8 10. e3 Rh5 11. Qd3 Rh6 12. b3 Rh5 13. Qc2 Rh6 14. a4 Rh5 15. a5 Rd5 16. Bd3 Rxd3 17. Nf6+ gxf6 18. Qxd3 b5 19. Rc1 f5 20. Qd4 f4 21. c6 fxe3 22. cxd7+ Qxd7 23. fxe3 e5 24. Qxh4 Ba3 25. Qh8+ Bf8 26. Qxe5+ Qe6 27. Rf1 Ba3 28. Qxe6+ Be7 29. Qh6 Bb4 30. Qh8+ Bf8 31. Qe5+ Be6 32. Ng5 Ba3 33. Rxc7 Bc1 34. Qh8# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nc3 Nh6 2. e4 Ng4 3. d4 Nxf2 4. Kxf2 h5 5. e5 h4 6. Bd3 Rh5 7. Qxh5 g5 8. d5 g4 9. Ke2 h3 10. g3 Nc6 11. Be3 Nxe5 12. Qxe5 Rb8 13. Nb5 Bh6 14. Bxh6 f5 15. Bxf5 Kf7 16. Bh7 Ra8 17. Rf1+ Ke8 18. Rf8# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. g3 Nh6 2. Nf3 Rg8 3. Bg2 Ng4 4. Nc3 Nc6 5. d4 Nxf2 6. Kxf2 Nxd4 7. Nxd4 h5 8. Qd3 h4 9. Ke1 h3 10. Bf3 Rh8 11. a4 Rg8 12. Ndb5 a5 13. Rf1 Rb8 14. Bd5 Rh8 15. Bxf7# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. h4 e5 2. h5 d5 3. Rh4 Qxh4 4. h6 g5 5. Nh3 g4 6. Nf4 d4 7. Nh5 Qe7 8. Nf6+ Nxf6 9. f4 Nd5 10. e4 Qh4+ 11. g3 Qxg3+ 12. Ke2 d3+ 13. cxd3 Nxf4# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e5 2. Ng5 d5 3. Nxh7 Qh4 4. Nf6+ Qxf6 5. Nc3 Ne7 6. Nxd5 Nxd5 7. Rg1 Nc6 8. Rh1 e4 9. h4 Nb6 10. h5 Bf5 11. h6 O-O-O 12. Rh5 Bg4 13. Rf5 Qxf5 14. h7 Bc5 15. g3 Bxf2# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 Nf6 2. Ng5 d5 3. Nxf7 Kxf7 4. Rg1 e5 5. Rh1 Ke8 6. Rg1 Bd6 7. g4 Be6 8. Rg3 Qd7 9. Rh3 Nxg4 10. Rxh7 Rxh7 11. Bh3 Rxh3 12. Nc3 Rxh2 13. Nxd5 Rh1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e6 2. Ng5 Qxg5 3. h4 Qd8 4. h5 h6 5. Rh4 d5 6. Rg4 a6 7. Rxg7 Bxg7 8. g4 Nc6 9. Bh3 e5 10. Bg2 a5 11. Bxd5 Nf6 12. Bxf7+ Kxf7 13. e4 Nd4 14. g5 Bg4 15. Qxg4 Nxg4 16. gxh6 Qh4 17. h7 Qh1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. g3 Nh6 2. d4 Nf5 3. e4 Ne3 4. fxe3 h5 5. e5 h4 6. Nc3 Rh5 7. Bg2 Rf5 8. e6 Rf1+ 9. Kxf1 g5 10. exf7+ Kxf7 11. Qh5+ Ke6 12. Qg6# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. g3 Nh6 2. Nf3 Nf5 3. d4 h5 4. e4 Nxd4 5. Nxd4 Rg8 6. Be3 b5 7. a4 bxa4 8. Bg2 h4 9. Nc3 h3 10. Bf3 a3 11. Rxa3 g5 12. O-O g4 13. Be2 Rh8 14. e5 f5 15. exf6 Ba6 16. Rxa6 Rh5 17. Bxg4 Re5 18. Bh5+ Rxh5 19. Qxh5# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. g3 h5 2. d3 h4 3. Nf3 h3 4. d4 Rh4 5. Nxh4 g5 6. Bxg5 Nc6 7. Bxh3 Nb4 8. Nc3 Nd3+ 9. cxd3 Nh6 10. Qb3 Nf5 11. Nxf5 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e5 2. Ng5 Qxg5 3. h4 Qd8 4. Rh3 d6 5. Rg3 h6 6. Rxg7 Bxg7 7. g4 e4 8. g5 Be5 9. gxh6 Nxh6 10. Bh3 Bxh3 11. h5 Qh4 12. Nc3 Bg2 13. Nd5 Qh1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. g3 Nh6 2. Nf3 Ng4 3. Bg2 Ne3 4. dxe3 Nc6 5. O-O Rb8 6. e4 h5 7. Nc3 h4 8. h3 Rh5 9. Nxh4 Rxh4 10. gxh4 a5 11. Bg5 Nd4 12. Kh1 Nxe2 13. Nd5 Ng1 14. Kxg1 g6 15. Qd4 Bh6 16. Bxh6 a4 17. Qh8# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 Nf6 2. Ng5 e6 3. Nxh7 Rxh7 4. h4 Nc6 5. Nc3 a6 6. h5 Rh8 7. h6 gxh6 8. Rxh6 Bxh6 9. Nd5 exd5 10. Rb1 d6 11. g4 Ne4 12. g5 Bg7 13. g6 Qf6 14. gxf7+ Kd8 15. f8=Q+ Qxf8 16. Bh3 Qxf2# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e6 2. Ng5 Qxg5 3. Nc3 Qe7 4. Nd5 exd5 5. Rg1 d4 6. Rb1 Nh6 7. Rh1 a5 8. Rg1 Na6 9. Rh1 c5 10. Rg1 c4 11. Rh1 Nc5 12. Rg1 Ne6 13. h4 d5 14. g4 Bd7 15. Rg3 Bc6 16. Rh3 a4 17. Rg3 Qd6 18. Rh3 f6 19. Rg3 b6 20. Re3 dxe3 21. Bh3 f5 22. gxf5 Qh2 23. fxe6 Qxf2# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "stockfish_depth1_skill0"]
+[Black "model"]
+[Result "1-0"]
+
+1. Nc3 Nh6 2. e4 Ng4 3. Be2 Nxf2 4. Kxf2 h5 5. Ke1 h4 6. d4 Rh5 7. e5 h3 8. g3 Rh4 9. gxh4 b5 10. Bg5 g6 11. Nf3 b4 12. Na4 Bh6 13. Bc4 Bxg5 14. Nxg5 b3 15. Bxf7+ Kf8 16. Bxg6 bxa2 17. Qh5 Kg8 18. Nf7 Kf8 19. Qh8# 1-0
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 d5 2. Ng5 e5 3. Nxh7 Rxh7 4. h4 Rxh4 5. Rxh4 Qxh4 6. g4 Nc6 7. g5 Qh2 8. g6 f5 9. Bh3 Qxh3 10. Nc3 Qh1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nc3 e6 2. Nd5 exd5 3. Nh3 d4 4. Ng5 Qxg5 5. h4 Qc5 6. Rh3 a5 7. h5 a4 8. h6 Nxh6 9. Rxh6 Na6 10. Rxh7 Rg8 11. Rh8 Rxh8 12. g4 Rh1 13. Rb1 Nb4 14. g5 Nxc2+ 15. Qxc2 Qxc2 16. g6 Qxb1 17. gxf7+ Kxf7 18. e4 Qxe4+ 19. Kd1 Rxf1# 0-1
+
+[Event "chess-rl full-game eval"]
+[Site "local"]
+[Date "2026.05.31"]
+[Round "?"]
+[White "model"]
+[Black "stockfish_depth1_skill0"]
+[Result "0-1"]
+
+1. Nh3 e6 2. Ng5 Qxg5 3. h4 Qd8 4. Nc3 d5 5. h5 d4 6. h6 Nxh6 7. Rxh6 gxh6 8. Nd5 exd5 9. Rb1 Qf6 10. g4 Bxg4 11. Bh3 Bxh3 12. f4 Qh4# 0-1

@@ -1,0 +1,100 @@
+{
+  "config": {
+    "model": "<UPSTREAM>/outputs/753f56d8624d2261/checkpoints/global_step_100/actor/huggingface",
+    "tokenizer": null,
+    "parquet": "data/chess_puzzles_chessr1_aligned_sharded_baseline/test.parquet",
+    "acc_key": "acc",
+    "k_max": 8,
+    "k_chunk": null,
+    "batch_size": 128,
+    "limit": null,
+    "print_prompt_examples": 0,
+    "max_prompt_length": 1536,
+    "max_response_length": 2000,
+    "max_model_len": 3584,
+    "tensor_parallel_size": 1,
+    "gpu_memory_utilization": 0.9,
+    "max_num_seqs": 1024,
+    "max_num_batched_tokens": null,
+    "enforce_eager": false,
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "do_sample": true,
+    "seed": 0,
+    "seed_mode": "engine",
+    "use_chat_template": true,
+    "chess_reward_fn": "winrate",
+    "logit_eps": 1e-06,
+    "out_rollouts_jsonl": null
+  },
+  "num_prompts": 10000,
+  "k": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "curves": {
+    "reward_best_mean": [
+      0.2154717743396759,
+      0.35544225573539734,
+      0.4133996069431305,
+      0.4512425363063812,
+      0.47670313715934753,
+      0.49682191014289856,
+      0.5126074552536011,
+      0.5262132287025452
+    ],
+    "acc_pass_mean": [
+      0.17470000684261322,
+      0.25589999556541443,
+      0.3091999888420105,
+      0.35100001096725464,
+      0.3813999891281128,
+      0.4047999978065491,
+      0.42340001463890076,
+      0.44020000100135803
+    ],
+    "valid_count_mean": [
+      0.9419000148773193,
+      1.8818000555038452,
+      2.8255999088287354,
+      3.768899917602539,
+      4.712699890136719,
+      5.650300025939941,
+      6.593100070953369,
+      7.532199859619141
+    ],
+    "expected_score_sum_mean": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "summary": {
+    "acc_key": "acc",
+    "k1_reward_mean": 0.2154717743396759,
+    "k1_acc_mean": 0.17470000684261322,
+    "pass_at_1_mean": 0.17470000684261322,
+    "k8_reward_mean": 0.5262132287025452,
+    "k8_acc_mean": 0.44020000100135803,
+    "pass_at_k_mean": 0.44020000100135803,
+    "prompt_len_mean": 523.2921,
+    "response_len_mean": 1117.7668125,
+    "k8_valid_count_mean": 7.532199859619141,
+    "k8_valid_frac_mean": 0.9415249824523926,
+    "k8_unique_valid_moves_mean": 3.4693000316619873,
+    "k8_expected_score_sum_mean": 0.0,
+    "k8_expected_score_sum_total": 0.0,
+    "k8_expected_score_mean_valid_mean": 0.0
+  }
+}

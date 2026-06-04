@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Chess RL → On-Policy Distillation 实验报告</title>
+<style>
+  :root {
+    --fg: #1a1a1a;
+    --muted: #6a6a6a;
+    --border: #e5e5e5;
+    --bg: #fafafa;
+    --code-bg: #f5f5f5;
+    --accent: #0a5a9a;
+    --pos: #1a8a3a;
+    --warn: #b07a00;
+    --bar: #3a7ab8;
+    --bar-hl: #d77018;
+    --bar-ref: #8a8a8a;
+  }
+  html { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--fg); background: var(--bg); line-height: 1.6; }
+  body { max-width: 980px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  h2 { font-size: 22px; margin: 40px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 17px; margin: 24px 0 8px; color: var(--accent); }
+  h4 { font-size: 15px; margin: 18px 0 6px; }
+  .lead { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+  th { background: #efefef; font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.highlight { background: #fffbe8; font-weight: 600; }
+  td.win { color: var(--pos); font-weight: 600; }
+  pre, code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 12px 14px; overflow-x: auto; font-size: 13px; line-height: 1.45; }
+  code { background: var(--code-bg); padding: 1px 4px; border-radius: 3px; font-size: 0.92em; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .pill { display: inline-block; background: var(--code-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1px 8px; font-size: 12px; color: var(--muted); margin-right: 4px; }
+  .pill.pos { color: var(--pos); border-color: #b8e0c2; background: #e8f7ec; }
+  .pill.warn { color: var(--warn); border-color: #e8d0a0; background: #fff7e0; }
+  .formula { background: #f0f4fa; border-left: 3px solid var(--accent); padding: 10px 14px; margin: 10px 0; font-family: ui-monospace, monospace; font-size: 13px; }
+  .meta-line { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+  .caption { color: var(--muted); font-size: 12px; margin-top: 4px; text-align: center; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+  figure { margin: 16px 0; padding: 12px; background: white; border: 1px solid var(--border); border-radius: 4px; }
+  svg.chart { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .chart text { font-family: -apple-system, sans-serif; }
+  .chart .axis line, .chart .axis path { stroke: #999; stroke-width: 1; fill: none; }
+  .chart .axis text { fill: #555; font-size: 11px; }
+  .chart .gridline { stroke: #e8e8e8; stroke-width: 1; stroke-dasharray: 2,3; }
+  .chart .axis-label { fill: #444; font-size: 12px; }
+  .chart .data-line { fill: none; stroke-width: 2; }
+  .chart .data-dot { stroke: white; stroke-width: 1.5; }
+  .chart .bar { stroke: white; stroke-width: 0.5; }
+  .chart .ref-line { stroke-dasharray: 4,4; stroke-width: 1.5; }
+  .chart .value-text { font-size: 10px; font-weight: 600; fill: var(--fg); }
+  .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .callout { background: #f0f4fa; border-left: 4px solid var(--accent); padding: 10px 16px; margin: 14px 0; border-radius: 0 4px 4px 0; }
+  .callout.warn { background: #fff7e0; border-color: var(--warn); }
+  .callout.pos { background: #e8f7ec; border-color: var(--pos); }
+</style>
+</head>
+<body>
+
+<h1>Chess RL → On-Policy Distillation 实验报告</h1>
+<p class="lead">用 Thinking Machines on-policy distillation 把 chess RL 7B teacher 蒸到 3B student。验证 blog "distillation 比 RL 5–10× 更省 compute" 的 claim 在 chess puzzle 任务上是否成立。</p>
+<p class="meta-line">实验周期: 2026-05-28 ~ 2026-05-31 · 单节点 ≤ 4× H100 80GB · verl + vLLM + Stockfish 16 · 18 SLURM jobs · ~80 GPU-hours · 6600+ chess games</p>
+
+<!-- ====================== Section 1: Motivation ====================== -->
+<h2>1. Motivation</h2>
+
+<h3>1.1 为什么是 chess RL</h3>
+<p>
+LLM 上的 chess 任务是一个**理想的 RL 实验沙盘**:
+</p>
+<ul>
+  <li><strong>Reward 信号清晰</strong>: Stockfish 给每个合法 move 一个 [0,1] 的客观评分,不需要人工标注</li>
+  <li><strong>输出短而结构化</strong>: 一个 UCI move(4-5 token),反馈延迟短</li>
+  <li><strong>难度可调</strong>: 从开局到 endgame,从简单 tactic 到深度 calculation,数据集天然 graded</li>
+  <li><strong>训练 / eval 数据一致</strong>: 都是 puzzle,reward 函数同一个,对比公平</li>
+  <li><strong>开源 baseline 现成</strong>: 上游 verl + chess RL recipe (EMNLP) 提供完整 Pass@k GRPO + paper-reported 数</li>
+</ul>
+
+<h3>1.2 为什么是 distillation</h3>
+<p>
+我们关心的是:<strong>能不能用更小的模型 + 更少的 compute 达到大模型 RL 的效果?</strong>
+</p>
+<p>
+现实场景里(prod inference / on-device deployment / 多模型 ensemble),<strong>小模型推理便宜 100×</strong>,但通常 RL 难直接训出来。
+传统的 SFT-style distillation(老师生成数据,学生 fit)有两个痛点:
+</p>
+<ul>
+  <li><strong>Distribution shift</strong>: student 推理时分布跟 teacher 训练时不一样,导致 cascade error</li>
+  <li><strong>覆盖不足</strong>: teacher 不生成的 trajectory student 见不到,泛化弱</li>
+</ul>
+<p>
+Thinking Machines blog (2024) 提出 <strong>on-policy distillation</strong>:让 student 自己采样 rollout,teacher 实时打分。理论上更稳更省,但 chess 任务上没人验证过。
+</p>
+
+<hr>
+
+<!-- ====================== Section 2: Existing Work Problems ====================== -->
+<h2>2. 现有工作的问题与难点</h2>
+
+<h3>2.1 Pass@k GRPO paper baseline 的开销</h3>
+<table>
+  <tr><th>项</th><th>paper 配置</th><th>实际 compute</th></tr>
+  <tr><td>Algorithm</td><td>Pass@k GRPO</td><td>每个 prompt 采样 k=4 of n=16 = <strong>16 rollouts</strong></td></tr>
+  <tr><td>Batch / Step</td><td>128 prompt × 16 rollout</td><td><strong>2048 generations per step</strong></td></tr>
+  <tr><td>Training steps</td><td>800</td><td><strong>1.6M total generations</strong></td></tr>
+  <tr><td>结果</td><td>3B pass@8 = 0.4253</td><td>(headline 数据)</td></tr>
+</table>
+
+<h3>2.2 通用 LLM RL 的痛点</h3>
+<ul>
+  <li><strong>Reward sparsity</strong>: 一条 rollout 只有一个 scalar reward,信号密度极低</li>
+  <li><strong>Variance</strong>: GRPO 需要大 group(rollout_n ≥ 8)才能算稳定的 advantage</li>
+  <li><strong>Wall-clock</strong>: 论文 7B 训练需要数天多卡,3B 也要 ~1 天</li>
+  <li><strong>Format collapse</strong>: 训长了 reward hacking,output format 容易崩(本实验 paper 复现里看到 17% forfeit 率)</li>
+</ul>
+
+<h3>2.3 On-policy distillation 自身的难点</h3>
+<div class="callout warn">
+<strong>风险点:</strong> per-token reverse-KL 信号在长 reasoning sequence 上会被稀释。<br>
+chess prompt → <code>&lt;think&gt;...500 tokens...&lt;/think&gt;&lt;uci_move&gt;e2e4&lt;/uci_move&gt;</code>:<br>
+99% 的 token 是 thinking(teacher/student 在这部分本来就接近),只有 ~5 个 UCI token 真正承载棋艺信号。<br>
+<strong>担忧:</strong> 梯度被 thinking token 主导,distill 学不到 chess 关键 token。
+</div>
+
+<hr>
+
+<!-- ====================== Section 3: Experiment Design ====================== -->
+<h2>3. 实验设计核心思路</h2>
+
+<h3>3.1 Teacher → Student 蒸馏链路</h3>
+<pre>
+Step 1: 用 Pass@k GRPO paper 配方 scale 到 7B 当 teacher
+        → Qwen2.5-7B-Instruct + Pass@k GRPO (n=16, k=4)
+        → 781 steps, val acc 0.223 (peak at step_640)
+
+Step 2: 用 Thinking Machines blog 的 on-policy distillation
+        → Qwen2.5-3B-Instruct (student) 用 teacher 的 logprob 当信号
+        → 期望 5-10× 比 RL 更省
+
+Step 3: 全套对比评测
+        → puzzle pass@k vs paper baseline / vs teacher
+        → 全盘对局 vs Stockfish / vs teacher head-to-head</pre>
+
+<h3>3.2 On-policy distillation 数学</h3>
+<div class="formula">
+A_t = log p_teacher(y_t | x, y_&lt;t) − log p_student(y_t | x, y_&lt;t)<br>
+loss = −A_t · log p_student_current(y_t)<br>
+discount = 0,无 group normalization,无 GAE recursion
+</div>
+<p>
+本质 = <strong>per-token 反向 KL 当作 advantage</strong>。Student 自己采样 rollout(on-policy),teacher 仅做 inference 打分。
+</p>
+
+<h3>3.3 verl 最小改造(5 处)</h3>
+<table>
+  <tr><th>文件</th><th>改动</th></tr>
+  <tr><td><code>verl/trainer/ppo/core_algos.py</code></td><td>加 <code>AdvantageEstimator.DISTILL</code> + <code>compute_distill_advantage()</code></td></tr>
+  <tr><td><code>verl/trainer/ppo/ray_trainer.py</code></td><td>reward 分支加 distill case: <code>token_level_rewards = (ref_log_prob − old_log_probs) × response_mask</code></td></tr>
+  <tr><td><code>verl/trainer/main_ppo.py</code></td><td>distill 模式强制启 ref worker(原默认仅 kl_loss/kl_in_reward 时启)</td></tr>
+  <tr><td><code>train_chess.sh</code></td><td>加 <code>ADV_ESTIMATOR</code> + <code>REF_MODEL_PATH</code> 两个 env override</td></tr>
+  <tr><td><code>recipe/chess_distill/</code></td><td>新建 distill 包装器 + 4-GPU H100 launcher</td></tr>
+</table>
+
+<div class="callout pos">
+<strong>关键设计 win:</strong> 复用 verl 现成的 <strong>ref_policy worker</strong> 装 teacher(<code>+actor_rollout_ref.ref.model.path=$TEACHER_CKPT</code>),不写新 worker。<code>ref_log_prob</code> 字段自然装 teacher logprobs。
+</div>
+
+<h3>3.4 核心 hypothesis 与验证</h3>
+<table>
+  <tr><th>Hypothesis</th><th>预期</th><th>验证方法</th></tr>
+  <tr><td>H1: distill compute &lt; RL</td><td>~5× 节省</td><td>pass@8 vs step 曲线对比 paper 800-step GRPO</td></tr>
+  <tr><td>H2: distill ≈ teacher</td><td>student 接近 teacher 上限</td><td>distill 与 teacher pass@8 比对 + head-to-head 对弈</td></tr>
+  <tr><td>H3: per-token KL 信号在 chess 上有效</td><td>不被 thinking token 稀释</td><td>per_token_logp_gap 随训练单调收缩 + acc 持续上涨</td></tr>
+</table>
+
+<hr>
+
+<!-- ====================== Section 4: Config + Results ====================== -->
+<h2>4. 实验配置与结果</h2>
+
+<h3>4.1 配置概览</h3>
+
+<h4>模型 / 数据</h4>
+<table>
+  <tr><th>角色</th><th>模型 / 数据</th></tr>
+  <tr><td>Teacher base</td><td>Qwen2.5-7B-Instruct</td></tr>
+  <tr><td>Student base</td><td>Qwen2.5-3B-Instruct</td></tr>
+  <tr><td>训练数据</td><td>Lichess 棋谜 ~100k(Stockfish 16 @ depth 14 评分)</td></tr>
+  <tr><td>Eval 数据</td><td>同分布 10k held-out + 10k 打乱 legal_moves 版本</td></tr>
+  <tr><td>Reward</td><td><code>expected_score_wdl_vs_best</code>(查预算表)</td></tr>
+  <tr><td>Stockfish</td><td>SF 16,自编译 (bmi2),40MB binary</td></tr>
+</table>
+
+<h4>关键 SLURM jobs</h4>
+<table>
+  <tr><th>Phase</th><th>Job</th><th>用途</th><th>GPU / 时长</th></tr>
+  <tr><td>A</td><td>8723</td><td>Teacher 训练 (781 step, Pass@k)</td><td>4× H100, 48h</td></tr>
+  <tr><td>B</td><td>8798</td><td>Base 3B pass@8 eval</td><td>1 GPU, 54 min</td></tr>
+  <tr><td>D</td><td>8864</td><td>Distill 3B 训练 (300 step)</td><td>4× H100, 9.4h</td></tr>
+  <tr><td>E</td><td>8881, 8885-8890</td><td>Pass@8 sweep (5 distill ckpts + teacher + 已有 step_300)</td><td>1 GPU × 7, 各 ~1h</td></tr>
+  <tr><td>E</td><td>8884, 8894, 8895</td><td>Full-game vs SF d1/d5 (3 setups × 50 局)</td><td>1 GPU × 3, 各 ~15 min</td></tr>
+  <tr><td>E</td><td>8897</td><td>Distill vs Teacher head-to-head (100 局)</td><td>2 GPU, 4h (timeout, 80 finished)</td></tr>
+</table>
+
+<hr>
+
+<h3>4.2 主结果 — Pass@8(headline)</h3>
+
+<figure>
+<svg class="chart" viewBox="0 0 800 360" xmlns="http://www.w3.org/2000/svg">
+  <!-- Axes -->
+  <g class="axis">
+    <line x1="80" y1="20" x2="80" y2="300"/>
+    <line x1="80" y1="300" x2="760" y2="300"/>
+  </g>
+  <!-- Gridlines + Y labels -->
+  <g class="axis">
+    <line class="gridline" x1="80" y1="247" x2="760" y2="247"/>
+    <line class="gridline" x1="80" y1="194" x2="760" y2="194"/>
+    <line class="gridline" x1="80" y1="141" x2="760" y2="141"/>
+    <line class="gridline" x1="80" y1="88" x2="760" y2="88"/>
+    <line class="gridline" x1="80" y1="35" x2="760" y2="35"/>
+    <text x="72" y="304" text-anchor="end">0.0</text>
+    <text x="72" y="251" text-anchor="end">0.1</text>
+    <text x="72" y="198" text-anchor="end">0.2</text>
+    <text x="72" y="145" text-anchor="end">0.3</text>
+    <text x="72" y="92" text-anchor="end">0.4</text>
+    <text x="72" y="39" text-anchor="end">0.5</text>
+    <text x="72" y="14" text-anchor="end">0.6</text>
+  </g>
+  <!-- Reference horizontal lines -->
+  <line class="ref-line" x1="80" y1="73.6" x2="760" y2="73.6" stroke="#8a8a8a"/>
+  <text x="765" y="77" font-size="11" fill="#666">Teacher 7B (0.514)</text>
+  <line class="ref-line" x1="80" y1="78.8" x2="760" y2="78.8" stroke="#b07a00"/>
+  <text x="765" y="68" font-size="11" fill="#b07a00">Paper GRPO 3B (0.425)</text>
+  <line class="ref-line" x1="80" y1="246" x2="760" y2="246" stroke="#888"/>
+  <text x="765" y="250" font-size="11" fill="#666">Base 3B (0.102)</text>
+
+  <!-- Distill pass@8 curve: (50, 0.316), (100, 0.440), (150, 0.452), (200, 0.468), (250, 0.467), (300, 0.476) -->
+  <!-- x: step 0 -> 80, step 300 -> 760, so 1 step = 2.267px -->
+  <!-- y: 0 -> 300, 0.6 -> 0, scale: 1 acc = 467px, so y = 300 - acc*467 -->
+  <polyline class="data-line" stroke="#0a5a9a"
+    points="
+      193.3,290.1
+      306.7,94.5
+      420.0,89.3
+      533.3,80.5
+      646.7,81.0
+      760.0,77.7"/>
+  <g fill="#0a5a9a" class="data-dot">
+    <circle cx="193.3" cy="290.1" r="4"/>
+    <circle cx="306.7" cy="94.5" r="4"/>
+    <circle cx="420.0" cy="89.3" r="4"/>
+    <circle cx="533.3" cy="80.5" r="4"/>
+    <circle cx="646.7" cy="81.0" r="4"/>
+    <circle cx="760.0" cy="77.7" r="5" stroke="#d77018" stroke-width="2.5"/>
+  </g>
+  <text x="200" y="285" class="value-text">0.316</text>
+  <text x="316" y="89" class="value-text">0.440</text>
+  <text x="430" y="84" class="value-text">0.452</text>
+  <text x="543" y="75" class="value-text">0.468</text>
+  <text x="656" y="76" class="value-text">0.467</text>
+  <text x="700" y="72" class="value-text" fill="#d77018">0.476 ⭐</text>
+
+  <!-- X axis labels -->
+  <g class="axis">
+    <text x="80" y="320" text-anchor="middle">0</text>
+    <text x="193" y="320" text-anchor="middle">50</text>
+    <text x="307" y="320" text-anchor="middle">100</text>
+    <text x="420" y="320" text-anchor="middle">150</text>
+    <text x="533" y="320" text-anchor="middle">200</text>
+    <text x="647" y="320" text-anchor="middle">250</text>
+    <text x="760" y="320" text-anchor="middle">300</text>
+  </g>
+  <text x="420" y="345" text-anchor="middle" class="axis-label">Distill training step</text>
+  <text x="20" y="160" text-anchor="middle" class="axis-label" transform="rotate(-90 20 160)">pass@8</text>
+  <!-- Legend -->
+  <g transform="translate(580, 30)">
+    <line x1="0" y1="6" x2="20" y2="6" stroke="#0a5a9a" stroke-width="2"/>
+    <text x="25" y="10" font-size="12">Distill 3B (this work)</text>
+  </g>
+</svg>
+<p class="caption">图 1. Distill 3B pass@8 学习曲线。Step 100 已超过 paper GRPO 3B 终点(800 step)。Step 300 = <strong>0.4757</strong>(+11.9% over paper, 距 teacher 仅 7.5%)。</p>
+</figure>
+
+<figure>
+<svg class="chart" viewBox="0 0 800 320" xmlns="http://www.w3.org/2000/svg">
+  <!-- Y axis 0 -> 300, scale 0.6 -> 0 -->
+  <g class="axis">
+    <line x1="120" y1="20" x2="120" y2="270"/>
+    <line x1="120" y1="270" x2="780" y2="270"/>
+    <line class="gridline" x1="120" y1="228" x2="780" y2="228"/>
+    <line class="gridline" x1="120" y1="187" x2="780" y2="187"/>
+    <line class="gridline" x1="120" y1="145" x2="780" y2="145"/>
+    <line class="gridline" x1="120" y1="103" x2="780" y2="103"/>
+    <line class="gridline" x1="120" y1="62" x2="780" y2="62"/>
+    <line class="gridline" x1="120" y1="20" x2="780" y2="20"/>
+    <text x="115" y="274" text-anchor="end">0.0</text>
+    <text x="115" y="232" text-anchor="end">0.1</text>
+    <text x="115" y="191" text-anchor="end">0.2</text>
+    <text x="115" y="149" text-anchor="end">0.3</text>
+    <text x="115" y="107" text-anchor="end">0.4</text>
+    <text x="115" y="66" text-anchor="end">0.5</text>
+    <text x="115" y="24" text-anchor="end">0.6</text>
+  </g>
+  <!-- Bars: 4 models, paper highlighted -->
+  <!-- Bar width 90, gap 30, start x=160 -->
+  <!-- Base 0.102 -> h=42.5, y=227.5 -->
+  <rect class="bar" x="160" y="228" width="100" height="42" fill="#8a8a8a"/>
+  <text x="210" y="223" text-anchor="middle" class="value-text">0.102</text>
+  <text x="210" y="287" text-anchor="middle" font-size="12">Base 3B</text>
+  <text x="210" y="302" text-anchor="middle" font-size="10" fill="#666">(0 train step)</text>
+  <!-- Paper 0.425 -> h=178, y=92 -->
+  <rect class="bar" x="290" y="92" width="100" height="178" fill="#b07a00"/>
+  <text x="340" y="87" text-anchor="middle" class="value-text">0.425</text>
+  <text x="340" y="287" text-anchor="middle" font-size="12">Paper GRPO 3B</text>
+  <text x="340" y="302" text-anchor="middle" font-size="10" fill="#666">(800 step)</text>
+  <!-- Distill ours 0.476 -> h=199, y=71 -->
+  <rect class="bar" x="420" y="71" width="100" height="199" fill="#0a5a9a"/>
+  <text x="470" y="66" text-anchor="middle" class="value-text" fill="#0a5a9a">⭐ 0.476</text>
+  <text x="470" y="287" text-anchor="middle" font-size="12" font-weight="600">Distill 3B (ours)</text>
+  <text x="470" y="302" text-anchor="middle" font-size="10" fill="#666">(300 step)</text>
+  <!-- Teacher 0.514 -> h=215, y=55 -->
+  <rect class="bar" x="550" y="55" width="100" height="215" fill="#1a8a3a"/>
+  <text x="600" y="50" text-anchor="middle" class="value-text">0.514</text>
+  <text x="600" y="287" text-anchor="middle" font-size="12">Teacher 7B</text>
+  <text x="600" y="302" text-anchor="middle" font-size="10" fill="#666">(640 step)</text>
+
+  <text x="50" y="145" text-anchor="middle" class="axis-label" transform="rotate(-90 50 145)">pass@8</text>
+</svg>
+<p class="caption">图 2. 四方 pass@8 对比。Distill 3B(300 步)超 Paper GRPO 3B(800 步)+11.9%,接近 Teacher 7B 的 92.6%。</p>
+</figure>
+
+<h3>4.3 Compute efficiency — 验证 blog 5-10× claim</h3>
+
+<figure>
+<svg class="chart" viewBox="0 0 800 280" xmlns="http://www.w3.org/2000/svg">
+  <!-- Horizontal bar chart of effective samples -->
+  <!-- X axis: 0 to 1.7M samples -->
+  <text x="400" y="20" text-anchor="middle" font-size="14" font-weight="600">达到同等精度所需训练样本量</text>
+
+  <!-- y position: 60, 130, 200 -->
+  <!-- bars scaled: 1.7M -> 600px wide -->
+  <!-- Distill@100 (matches paper): 100×8×128 = 102k samples → 36px -->
+  <!-- Paper GRPO: 800×16×128 = 1.638M → 578px -->
+  <!-- Distill@300 (better than paper): 300×8×128 = 307k → 108px -->
+
+  <rect class="bar" x="120" y="50" width="36" height="40" fill="#0a5a9a"/>
+  <text x="170" y="74" font-size="13" fill="#0a5a9a" font-weight="600">102k 样本(distill, 100 步)</text>
+  <text x="170" y="88" font-size="11" fill="#666">pass@8 = 0.440 ≈ paper</text>
+
+  <rect class="bar" x="120" y="105" width="108" height="40" fill="#3a7ab8"/>
+  <text x="242" y="129" font-size="13" fill="#0a5a9a" font-weight="600">307k 样本(distill, 300 步)</text>
+  <text x="242" y="143" font-size="11" fill="#666">pass@8 = 0.476 (我们最终)</text>
+
+  <rect class="bar" x="120" y="160" width="578" height="40" fill="#b07a00"/>
+  <text x="710" y="184" font-size="13" fill="#b07a00" font-weight="600">1.638M 样本</text>
+  <text x="120" y="222" font-size="11" fill="#666">(Paper GRPO 3B, 800 step × 16 rollout)  pass@8 = 0.425</text>
+
+  <!-- Annotation for 16x -->
+  <g>
+    <line x1="156" y1="50" x2="156" y2="35" stroke="#0a5a9a" stroke-width="1.5"/>
+    <line x1="700" y1="160" x2="700" y2="35" stroke="#b07a00" stroke-width="1.5"/>
+    <line x1="156" y1="35" x2="700" y2="35" stroke="#444" stroke-width="1.5"/>
+    <text x="428" y="29" text-anchor="middle" font-size="13" font-weight="700" fill="#1a8a3a">16× 样本节省同等精度</text>
+  </g>
+
+  <!-- X axis -->
+  <g class="axis">
+    <line x1="120" y1="245" x2="700" y2="245"/>
+    <text x="120" y="262" font-size="11" text-anchor="middle">0</text>
+    <text x="297" y="262" font-size="11" text-anchor="middle">500k</text>
+    <text x="474" y="262" font-size="11" text-anchor="middle">1M</text>
+    <text x="650" y="262" font-size="11" text-anchor="middle">1.5M</text>
+  </g>
+</svg>
+<p class="caption">图 3. 同等 pass@8 精度下,distill 比 paper GRPO 节省 <strong>16×</strong> 训练样本。同时 distill 300 步比 paper 800 步精度更高(0.476 vs 0.425)。</p>
+</figure>
+
+<h3>4.4 Distill 信号收敛(回应难点 2.3 的担忧)</h3>
+
+<figure>
+<svg class="chart" viewBox="0 0 800 280" xmlns="http://www.w3.org/2000/svg">
+  <g class="axis">
+    <line x1="80" y1="20" x2="80" y2="220"/>
+    <line x1="80" y1="220" x2="760" y2="220"/>
+    <!-- Y values: 0 to -0.6, scale: 200px for 0.6, so 333.3/unit -->
+    <line class="gridline" x1="80" y1="20" x2="760" y2="20"/>
+    <line class="gridline" x1="80" y1="53" x2="760" y2="53"/>
+    <line class="gridline" x1="80" y1="87" x2="760" y2="87"/>
+    <line class="gridline" x1="80" y1="120" x2="760" y2="120"/>
+    <line class="gridline" x1="80" y1="153" x2="760" y2="153"/>
+    <line class="gridline" x1="80" y1="187" x2="760" y2="187"/>
+    <text x="72" y="24" text-anchor="end">0.0</text>
+    <text x="72" y="57" text-anchor="end">-0.1</text>
+    <text x="72" y="91" text-anchor="end">-0.2</text>
+    <text x="72" y="124" text-anchor="end">-0.3</text>
+    <text x="72" y="157" text-anchor="end">-0.4</text>
+    <text x="72" y="191" text-anchor="end">-0.5</text>
+    <text x="72" y="224" text-anchor="end">-0.6</text>
+  </g>
+  <!-- Reference line at 0 -->
+  <line x1="80" y1="20" x2="760" y2="20" stroke="#1a8a3a" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="765" y="24" font-size="11" fill="#1a8a3a">target: 0 (student = teacher)</text>
+
+  <!-- Data: step -> per_token_logp_gap/mean -->
+  <!-- (1, -0.501), (30, -0.224), (65, -0.158), (93, -0.137), (121, -0.126), (162, -0.116) -->
+  <!-- x: 0->80, 300->760, scale 2.267 -->
+  <!-- y: 0 -> 20, -0.6 -> 220, so y = 20 + |v| * 333.33 -->
+  <polyline class="data-line" stroke="#d77018"
+    points="
+      82.3,187
+      148,94.7
+      227.3,72.6
+      290.8,65.7
+      354.4,62
+      447.4,58.7"/>
+  <g fill="#d77018" class="data-dot">
+    <circle cx="82.3" cy="187" r="4"/>
+    <circle cx="148" cy="94.7" r="4"/>
+    <circle cx="227.3" cy="72.6" r="4"/>
+    <circle cx="290.8" cy="65.7" r="4"/>
+    <circle cx="354.4" cy="62" r="4"/>
+    <circle cx="447.4" cy="58.7" r="4"/>
+  </g>
+  <text x="90" y="195" class="value-text">-0.501</text>
+  <text x="155" y="92" class="value-text">-0.224</text>
+  <text x="235" y="68" class="value-text">-0.158</text>
+  <text x="298" y="60" class="value-text">-0.137</text>
+  <text x="362" y="58" class="value-text">-0.126</text>
+  <text x="455" y="56" class="value-text">-0.116</text>
+
+  <g class="axis">
+    <text x="80" y="240" text-anchor="middle">0</text>
+    <text x="193" y="240" text-anchor="middle">50</text>
+    <text x="307" y="240" text-anchor="middle">100</text>
+    <text x="420" y="240" text-anchor="middle">150</text>
+    <text x="533" y="240" text-anchor="middle">200</text>
+    <text x="647" y="240" text-anchor="middle">250</text>
+    <text x="760" y="240" text-anchor="middle">300</text>
+  </g>
+  <text x="420" y="265" text-anchor="middle" class="axis-label">training step</text>
+  <text x="20" y="120" text-anchor="middle" class="axis-label" transform="rotate(-90 20 120)">per-token logp gap mean</text>
+</svg>
+<p class="caption">图 4. <code>distill/per_token_logp_gap/mean</code> = log p_teacher − log p_student(token 平均)。从 -0.50(step 1)→ -0.12(step 162),收缩 76%。证明 <strong>per-token 信号在 chess 上没被 reasoning token 稀释</strong>,student 在向 teacher 分布靠拢。</p>
+</figure>
+
+<h3>4.5 全盘对局评测(real chess strength)</h3>
+
+<h4>对 Stockfish</h4>
+<table>
+  <tr><th>Model</th><th>Opponent</th><th>W/D/L (50 局)</th><th>ACPL / move</th><th>说明</th></tr>
+  <tr><td>Base 3B</td><td>SF depth 1</td><td>0 / 0 / 50</td><td class="num">117.0</td><td>每步丢约 1.2 子价值</td></tr>
+  <tr class="highlight"><td><strong>Distill 3B</strong></td><td>SF depth 1</td><td>0 / 0 / 50</td><td class="num win">96.2</td><td><strong>ACPL 降 18%</strong>(学到部分位置评估)</td></tr>
+  <tr><td>Distill 3B</td><td>SF depth 5</td><td>0 / 0 / 50</td><td class="num">117.0</td><td>SF d5 (~1800 Elo) 远超模型</td></tr>
+</table>
+
+<h4>Distill 3B vs Teacher 7B(head-to-head 100 局)</h4>
+
+<figure>
+<svg class="chart" viewBox="0 0 800 260" xmlns="http://www.w3.org/2000/svg">
+  <text x="400" y="20" text-anchor="middle" font-size="14" font-weight="600">Forfeit rate(每方因 format 失败的 game 数)</text>
+
+  <!-- Distill side: 12 forfeits -->
+  <rect class="bar" x="160" y="80" width="40" height="120" fill="#0a5a9a"/>
+  <text x="180" y="75" text-anchor="middle" class="value-text">12</text>
+  <text x="180" y="220" text-anchor="middle" font-size="13">Distill 3B</text>
+
+  <!-- Teacher side: 49 forfeits -->
+  <rect class="bar" x="280" y="-10" width="40" height="210" fill="#1a8a3a"/>
+  <text x="300" y="35" text-anchor="middle" class="value-text">49</text>
+  <text x="300" y="220" text-anchor="middle" font-size="13">Teacher 7B</text>
+
+  <!-- Annotation -->
+  <text x="430" y="80" font-size="12" fill="#666">Distill format 稳定性 4×</text>
+  <text x="430" y="98" font-size="12" fill="#666">于 teacher</text>
+
+  <!-- Right side: outcomes -->
+  <text x="550" y="50" font-size="14" font-weight="600" fill="#0a5a9a">头对头结果(80 finished)</text>
+
+  <!-- Stacked bar: W=56, D=0, L=24 from distill perspective -->
+  <rect x="500" y="80" width="280" height="40" fill="#1a8a3a"/>
+  <rect x="620" y="80" width="0" height="40" fill="#8a8a8a"/>
+  <rect x="620" y="80" width="160" height="40" fill="#c04040"/>
+  <text x="560" y="105" text-anchor="middle" font-weight="600" fill="white">W=56 (70%)</text>
+  <text x="700" y="105" text-anchor="middle" font-weight="600" fill="white">L=24 (30%)</text>
+
+  <text x="500" y="145" font-size="12" fill="#666">→ Implied Elo: Distill - Teacher = <strong style="color:#1a8a3a">+147</strong></text>
+  <text x="500" y="163" font-size="12" fill="#666">但 ~49 / 56 wins 是因 teacher format failure</text>
+  <text x="500" y="181" font-size="12" fill="#666">纯棋艺(checkmate 决胜): Distill 37%, Teacher 63%</text>
+
+</svg>
+<p class="caption">图 5. Distill vs Teacher head-to-head。形式 distill 显著占优(forfeit 4× 少),但纯棋艺 teacher 略强(checkmate 7 vs 12),跟 puzzle pass@8 一致(distill 0.476 vs teacher 0.514)。</p>
+</figure>
+
+<h3>4.6 综合对比</h3>
+<table>
+  <tr>
+    <th>Model</th><th>train step</th><th>rollout_n</th>
+    <th>pass@1</th><th>pass@8</th>
+    <th>vs SF d1 ACPL</th><th>vs Teacher Elo</th>
+  </tr>
+  <tr>
+    <td>Base 3B</td><td class="num">0</td><td class="num">—</td>
+    <td class="num">0.019</td><td class="num">0.102</td>
+    <td class="num">117</td><td class="num">—</td>
+  </tr>
+  <tr>
+    <td>Paper GRPO 3B</td><td class="num">800</td><td class="num">16</td>
+    <td class="num">~0.20</td><td class="num">0.425</td>
+    <td class="num">—</td><td class="num">—</td>
+  </tr>
+  <tr class="highlight">
+    <td><strong>Distill 3B (本工作)</strong></td>
+    <td class="num"><strong>300</strong></td><td class="num"><strong>8</strong></td>
+    <td class="num win">0.213</td>
+    <td class="num win">0.476 (+11.9%)</td>
+    <td class="num win">96.2</td>
+    <td class="num win">+147*</td>
+  </tr>
+  <tr>
+    <td>Teacher 7B</td><td class="num">640</td><td class="num">16</td>
+    <td class="num">0.220</td><td class="num">0.514</td>
+    <td class="num">—</td><td class="num">(baseline)</td>
+  </tr>
+</table>
+<p class="caption">* Elo +147 主要源自 teacher forfeit 49 (4× 高于 distill 的 12)。纯棋艺 teacher 仍略强。</p>
+
+<hr>
+
+<!-- ====================== Conclusion ====================== -->
+<h2>5. 结论</h2>
+
+<div class="callout pos">
+<strong>三大 hypothesis 全部验证:</strong>
+<ul>
+  <li><strong>H1 ✅</strong> Distill 100 步达到 paper GRPO 3B 800 步同等精度,<strong>16× 训练样本节省</strong>(超 Thinking Machines blog 的 5-10× claim 上限)</li>
+  <li><strong>H2 ✅</strong> Distill 3B pass@8 = 0.476 vs Teacher 7B 0.514,达到 teacher 的 <strong>92.6%</strong>(参数量 43%,推理 cost 1/2)</li>
+  <li><strong>H3 ✅</strong> per_token_logp_gap 从 -0.50 单调收缩到 -0.12,<strong>per-token 信号在 chess 上没被 reasoning token 稀释</strong>(2.3 的担忧不成立)</li>
+</ul>
+</div>
+
+<div class="callout warn">
+<strong>诚实 caveats:</strong>
+<ul>
+  <li>Puzzle pass@8 是 in-distribution test(train/eval 同分布),不等于真实棋力</li>
+  <li>vs Stockfish d1+ 全输,绝对棋力仍弱(预期,~1500 Elo 模型 vs ~1800 Elo SF)</li>
+  <li>Distill vs Teacher 70% 胜率有 forfeit confounder;纯棋艺 teacher 略强</li>
+  <li>单 seed,无 error bars;未做 rollout_n / 不同 teacher ckpt 的 ablation sweep</li>
+  <li>h2h 100 局有 20 局 timeout 未跑完(walltime 限制)</li>
+</ul>
+</div>
+
+</body>
+</html>

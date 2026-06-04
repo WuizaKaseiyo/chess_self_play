@@ -1,0 +1,30 @@
+# Logs
+logs/
+*.log
+slurm-*.out
+slurm-*.err
+
+# Model checkpoints (way too large for git)
+*.safetensors
+*.bin
+*.pt
+*.pth
+checkpoint-*/
+global_step_*/
+actor/
+
+# Data (live in upstream)
+data/
+*.parquet
+
+# Python / env
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Misc
+.DS_Store
+*.swp
+*.tmp
+.ipynb_checkpoints/

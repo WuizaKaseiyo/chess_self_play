@@ -1,0 +1,81 @@
+{
+  "config": {
+    "opponent_depths": [
+      1
+    ],
+    "games_per_depth": 50,
+    "rounds": null,
+    "games_per_round": null,
+    "max_retries_per_turn": 3,
+    "seed": 0,
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "max_response_tokens": 2000,
+    "batched_inference": true,
+    "opponent_movetime_ms": 100,
+    "acpl_eval_depth": 20,
+    "acpl_eval_movetime_ms": 1000,
+    "acpl_eval_cp_cap": 1000,
+    "acpl_workers": 1,
+    "resignation_cpl": 1000,
+    "mate_score_cp": 1000,
+    "max_plies": 200,
+    "stockfish_opponent": {
+      "path": ".third_party_cache/stockfish/src/stockfish",
+      "threads": 4,
+      "hash_mb": 128,
+      "skill_level": 0
+    },
+    "stockfish_eval": {
+      "path": ".third_party_cache/stockfish/src/stockfish",
+      "threads": 4,
+      "hash_mb": 128,
+      "skill_level": 20
+    },
+    "prompt_template_path": "recipe/chess/prompt_templates/chess_rl_chessr1_prompt.jinja",
+    "system_prompt": "",
+    "out_dir": "<UPSTREAM>/eval_results/distill_s300_fullgame_d1"
+  },
+  "summary_by_depth": {
+    "depth_1": {
+      "opponent_depth": 1,
+      "num_games": 50,
+      "wins": 0,
+      "losses": 50,
+      "draws": 0,
+      "acpl_sum": 5348.522468793361,
+      "acpl_games": 50,
+      "acpl_mean": 106.97044937586723,
+      "acpl_sum_per_move": 83304.0,
+      "acpl_moves": 866,
+      "acpl_mean_per_move": 96.19399538106235,
+      "infer_time_s": 303.74868869781494,
+      "infer_positions": 921,
+      "infer_batches": 67.0,
+      "acpl_time_s": 964.7130715847015
+    }
+  },
+  "paths": {
+    "moves_jsonl": "<UPSTREAM>/eval_results/distill_s300_fullgame_d1/moves.jsonl",
+    "games_jsonl": "<UPSTREAM>/eval_results/distill_s300_fullgame_d1/games.jsonl",
+    "summary_json": "<UPSTREAM>/eval_results/distill_s300_fullgame_d1/summary.json",
+    "games_pgn": "<UPSTREAM>/eval_results/distill_s300_fullgame_d1/games.pgn"
+  },
+  "summary_overall": {
+    "num_games": 50,
+    "wins": 0,
+    "losses": 50,
+    "draws": 0,
+    "win_rate": 0.0,
+    "acpl_sum": 5348.522468793361,
+    "acpl_games": 50,
+    "acpl_mean": 106.97044937586723,
+    "acpl_sum_per_move": 83304.0,
+    "acpl_moves": 866,
+    "acpl_mean_per_move": 96.19399538106235,
+    "infer_time_s": 303.74868869781494,
+    "infer_positions": 921,
+    "infer_batches": 67,
+    "acpl_time_s": 964.7130715847015
+  }
+}
