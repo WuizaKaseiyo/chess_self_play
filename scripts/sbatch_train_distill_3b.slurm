@@ -55,7 +55,7 @@ conda activate "${CONDA_ENV:-chess}"
 nvidia-smi -L || true
 
 # ---- Inputs --------------------------------------------------------------
-UPSTREAM_DIR="${UPSTREAM_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)/upstream/vam-chess}"
+UPSTREAM_DIR="${UPSTREAM_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)/vam-chess}"
 : "${TEACHER_CKPT:?TEACHER_CKPT must point to an HF-format teacher model dir}"
 export TEACHER_CKPT
 export MODEL_PATH="${STUDENT_MODEL:-$HOME/models/Qwen2.5-3B-Instruct}"

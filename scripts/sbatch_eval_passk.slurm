@@ -29,7 +29,7 @@ if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
 fi
 conda activate "${CONDA_ENV:-chess}"
 
-UPSTREAM_DIR="${UPSTREAM_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)/upstream/vam-chess}"
+UPSTREAM_DIR="${UPSTREAM_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)/vam-chess}"
 : "${MODEL:?MODEL (HF dir) required}"
 : "${OUT_PATH:?OUT_PATH (json) required}"
 

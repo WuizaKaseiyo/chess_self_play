@@ -54,7 +54,7 @@ conda activate "${CONDA_ENV:-chess}"
 nvidia-smi -L || true
 
 # ---- Upstream framework path ---------------------------------------------
-UPSTREAM_DIR="${UPSTREAM_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)/upstream/vam-chess}"
+UPSTREAM_DIR="${UPSTREAM_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)/vam-chess}"
 cd "${UPSTREAM_DIR}"
 export PYTHONPATH="${UPSTREAM_DIR}:${PYTHONPATH:-}"
 

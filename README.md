@@ -26,14 +26,13 @@ chess_self_play/
 │   ├── sbatch_eval_passk.slurm                 Stage C — puzzle pass@k eval
 │   ├── sbatch_eval_fullgame.slurm              Stage C — full game vs Stockfish
 │   └── sbatch_eval_h2h.slurm                   Stage C — head-to-head
-├── upstream/                                    ← VENDORED training framework (Apache 2.0)
-│   └── vam-chess/                              chess RL recipe + verl trainer
-│       ├── recipe/chess/                          reward fn, prompt templates, SF scoring
-│       ├── recipe/chess_distill/                  distill launcher
-│       ├── verl/                                  RL framework (Pass@k, distill estimators)
-│       ├── scripts/                               eval_chess_passk.py, eval_chess_fullgame.py, ...
-│       ├── train_chess.sh                         main training launcher
-│       └── ...
+├── vam-chess/                                   ← VENDORED training framework (Apache 2.0)
+│   ├── recipe/chess/                              reward fn, prompt templates, SF scoring
+│   ├── recipe/chess_distill/                      distill launcher
+│   ├── verl/                                      RL framework (Pass@k, distill estimators)
+│   ├── scripts/                                   eval_chess_passk.py, eval_chess_fullgame.py, ...
+│   ├── train_chess.sh                             main training launcher
+│   └── ...
 ├── results/                                     ← eval artifacts from our runs
 │   ├── teacher_step640_passk.json              7B teacher final pass@k
 │   ├── distill_step{50..300}_passk.json        3B distill learning curve
@@ -99,23 +98,23 @@ chess_self_play/
 
 ### 1. Training framework (bundled)
 
-The training framework lives in [`upstream/vam-chess/`](upstream/vam-chess/)
+The training framework lives in [`vam-chess/`](vam-chess/)
 inside this repo. It is a chess-specific recipe layered on top of an
 upstream RL training library, redistributed here under Apache 2.0 (see
-[NOTICE](NOTICE) and [`upstream/vam-chess/LICENSE`](upstream/vam-chess/LICENSE)).
+[NOTICE](NOTICE) and [`vam-chess/LICENSE`](vam-chess/LICENSE)).
 Key pieces:
 
 - **Pass@k GRPO** advantage estimator —
-  [`upstream/vam-chess/verl/trainer/ppo/core_algos.py`](upstream/vam-chess/verl/trainer/ppo/core_algos.py)
+  [`vam-chess/verl/trainer/ppo/core_algos.py`](vam-chess/verl/trainer/ppo/core_algos.py)
   (`passk_advantages_max_subsets`)
 - **Distill** advantage estimator — per-token reverse-KL, same file
   (`AdvantageEstimator.DISTILL`)
-- **Stockfish-graded reward** — [`upstream/vam-chess/recipe/chess/reward_fn.py`](upstream/vam-chess/recipe/chess/reward_fn.py)
+- **Stockfish-graded reward** — [`vam-chess/recipe/chess/reward_fn.py`](vam-chess/recipe/chess/reward_fn.py)
 - **Online play / multi-step rollout hook** —
-  [`upstream/vam-chess/verl/trainer/ppo/ray_trainer.py`](upstream/vam-chess/verl/trainer/ppo/ray_trainer.py)
+  [`vam-chess/verl/trainer/ppo/ray_trainer.py`](vam-chess/verl/trainer/ppo/ray_trainer.py)
   (`_build_self_play_train_batch`)
 
-`UPSTREAM_DIR` defaults to `<repo_root>/upstream/vam-chess`, so the sbatch
+`UPSTREAM_DIR` defaults to `<repo_root>/vam-chess`, so the sbatch
 launchers in `scripts/` work out of the box. To point them at a different
 upstream tree, pass `--export=ALL,UPSTREAM_DIR=/path/to/your/clone,...` to
 `sbatch`.
@@ -124,7 +123,7 @@ upstream tree, pass `--export=ALL,UPSTREAM_DIR=/path/to/your/clone,...` to
 > expects them at
 > `${UPSTREAM_DIR}/data/chess_puzzles_chessr1_aligned_sharded_baseline/`.
 > Run the upstream's `scripts/build_chessr1_aligned_dataset.py` (or the
-> matching sbatch under `upstream/vam-chess/`) to materialise them from the
+> matching sbatch under `vam-chess/`) to materialise them from the
 > public [Lichess puzzle database](https://database.lichess.org/).
 
 ### 2. Base models
