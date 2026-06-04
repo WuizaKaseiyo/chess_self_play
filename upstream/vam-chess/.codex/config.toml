@@ -1,0 +1,12 @@
+[agents.coding_agent]
+config_file = "/usr0/home/zhichen3/chess-rl/.codex/agents/coding_agent.toml"
+
+[agents.researcher]
+config_file = "/usr0/home/zhichen3/chess-rl/.codex/agents/researcher.toml"
+
+[agents.verifier]
+config_file = "/usr0/home/zhichen3/chess-rl/.codex/agents/verifier.toml"
+
+[agents]
+max_threads = 128
+max_depth = 1

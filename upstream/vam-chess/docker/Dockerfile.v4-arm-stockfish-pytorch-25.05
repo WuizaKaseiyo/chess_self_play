@@ -1,0 +1,212 @@
+# syntax=docker/dockerfile:1.7
+#
+# ARM64 (aarch64) chess_rl image based on NVIDIA NGC PyTorch 25.05.
+# Base image: nvcr.io/nvidia/pytorch:25.05-py3
+#
+# Build + push:
+#   docker buildx build --platform linux/arm64 \
+#     -t gabr1e1/chess_rl:v4-arm-stockfish-pytorch-25.05 \
+#     -f docker/Dockerfile.v4-arm-stockfish-pytorch-25.05 \
+#     --push .
+#
+# Notes:
+# - Base image already includes Torch + FlashAttention.
+# - We install vLLM + FlashInfer and the minimal Python deps used by train_chess.sh.
+# - The repo will be bind-mounted at /workspace/chess_rl on the cluster.
+
+ARG STOCKFISH_TAG=sf_16
+ARG UBUNTU_PORTS_MIRROR=http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports
+
+FROM --platform=$BUILDPLATFORM ubuntu:24.04 AS stockfish_builder
+ARG STOCKFISH_TAG
+ARG UBUNTU_PORTS_MIRROR
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get clean && apt-get autoclean && rm -rf /var/lib/apt/lists/* \
+    && PORTS_FILES="$(grep -RIl 'ports.ubuntu.com/ubuntu-ports' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null || true)" \
+    && if [ -n "${PORTS_FILES}" ]; then \
+         for f in ${PORTS_FILES}; do mv "${f}" "${f}.ports.bak"; done; \
+         printf '%s\n' \
+           "Types: deb" \
+           "URIs: ${UBUNTU_PORTS_MIRROR}" \
+           "Suites: noble noble-updates noble-backports noble-security" \
+           "Components: main restricted universe multiverse" \
+           "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" \
+           > /etc/apt/sources.list.d/ubuntu.sources; \
+    fi \
+    && find /etc/apt -maxdepth 2 -type f \( -name "*.list" -o -name "*.sources" \) \
+      -exec sed -i -e "s|http://ports.ubuntu.com/ubuntu-ports|${UBUNTU_PORTS_MIRROR}|g" \
+                  -e "s|https://ports.ubuntu.com/ubuntu-ports|${UBUNTU_PORTS_MIRROR}|g" {} + || true \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    make \
+    binutils \
+    binutils-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch "${STOCKFISH_TAG}" https://github.com/official-stockfish/Stockfish.git /tmp/stockfish
+
+WORKDIR /tmp/stockfish/src
+
+# Cross-compile for ARMv8 (aarch64).
+RUN make clean >/dev/null || true
+RUN make build ARCH=armv8 COMP=gcc COMPCXX=aarch64-linux-gnu-g++ -j"$(nproc)"
+
+# Reduce binary size; ignore failure (strip is optional).
+RUN aarch64-linux-gnu-strip /tmp/stockfish/src/stockfish || true
+
+
+FROM --platform=$TARGETPLATFORM nvcr.io/nvidia/pytorch:25.05-py3 AS torch_base
+
+FROM --platform=$TARGETPLATFORM nvcr.io/nvidia/pytorch:25.05-py3
+
+ARG VLLM_VERSION=0.11.0
+ARG VLLM_GIT_REF=v${VLLM_VERSION}
+ARG VLLM_USE_PRECOMPILED=0
+ARG VLLM_BUILD_TMP=/opt/vllm_tmp
+ARG FLASHINFER_VERSION=0.5.2
+ARG UBUNTU_PORTS_MIRROR
+ARG TORCH_CUDA_ARCH_LIST=9.0
+ARG torch_cuda_arch_list
+ARG MAX_JOBS
+ARG NVCC_THREADS
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_BREAK_SYSTEM_PACKAGES=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/workspace/chess_rl \
+    PATH=/workspace/chess_rl:${PATH} \
+    CCACHE_DIR=/opt/ccache \
+    CCACHE_NOHASHDIR=true \
+    UV_CONCURRENT_INSTALLS=1 \
+    VLLM_USE_PRECOMPILED=${VLLM_USE_PRECOMPILED} \
+    VLLM_BUILD_TMP=${VLLM_BUILD_TMP} \
+    VLLM_TARGET_DEVICE=cuda
+
+WORKDIR /workspace/chess_rl
+
+# Build tooling for vLLM source compilation.
+RUN apt-get clean && apt-get autoclean && rm -rf /var/lib/apt/lists/* \
+    && PORTS_FILES="$(grep -RIl 'ports.ubuntu.com/ubuntu-ports' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null || true)" \
+    && if [ -n "${PORTS_FILES}" ]; then \
+         for f in ${PORTS_FILES}; do mv "${f}" "${f}.ports.bak"; done; \
+         printf '%s\n' \
+           "Types: deb" \
+           "URIs: ${UBUNTU_PORTS_MIRROR}" \
+           "Suites: noble noble-updates noble-backports noble-security" \
+           "Components: main restricted universe multiverse" \
+           "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" \
+           > /etc/apt/sources.list.d/ubuntu.sources; \
+    fi \
+    && find /etc/apt -maxdepth 2 -type f \( -name "*.list" -o -name "*.sources" \) \
+      -exec sed -i -e "s|http://ports.ubuntu.com/ubuntu-ports|${UBUNTU_PORTS_MIRROR}|g" \
+                  -e "s|https://ports.ubuntu.com/ubuntu-ports|${UBUNTU_PORTS_MIRROR}|g" {} + || true \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    ccache \
+    ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+# uv is used for vLLM + runtime deps (system install, no venv).
+RUN python3 -m pip install --no-cache-dir --retries 10 --timeout 120 uv
+
+# vLLM (prefer precompiled wheels; fallback to source build if disabled).
+RUN if [ "${VLLM_USE_PRECOMPILED}" = "1" ]; then \
+        uv pip install --system --break-system-packages "vllm==${VLLM_VERSION}" \
+        && python3 -c "import vllm; print('vllm', vllm.__version__)"; \
+    else \
+        git clone --depth 1 --branch "${VLLM_GIT_REF}" https://github.com/vllm-project/vllm.git /opt/vllm \
+        && cd /opt/vllm \
+        && git submodule update --init --recursive \
+        && python3 use_existing_torch.py \
+        && export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-${torch_cuda_arch_list:-9.0}}" \
+        && if [ -n "${MAX_JOBS:-}" ]; then export MAX_JOBS="${MAX_JOBS}"; else export MAX_JOBS="$(nproc)"; fi \
+        && if [ -n "${NVCC_THREADS:-}" ]; then export NVCC_THREADS="${NVCC_THREADS}"; fi \
+        && export CMAKE_GENERATOR=Ninja \
+        && export CMAKE_ARGS="-GNinja" \
+        && export NINJA_STATUS="[%f/%t %p] %e" \
+        && mkdir -p "${CCACHE_DIR}" \
+        && mkdir -p "${VLLM_BUILD_TMP}" \
+        && export TMPDIR="${VLLM_BUILD_TMP}" \
+        && export TEMP="${VLLM_BUILD_TMP}" \
+        && export TMP="${VLLM_BUILD_TMP}" \
+        && export CMAKE_BUILD_PARALLEL_LEVEL="${MAX_JOBS}" \
+        && rm -rf /usr/local/lib/python3.12/dist-packages/llvmlite* \
+        && uv pip install --system --break-system-packages -r requirements/build.txt \
+        && uv pip install --system --break-system-packages --no-build-isolation -e . \
+        && python3 -c "import vllm; print('vllm', vllm.__version__)" \
+        && rm -rf /opt/vllm/.git; \
+    fi
+
+# FlashInfer (vLLM optional acceleration). Keep versions aligned.
+RUN uv pip install --system --break-system-packages \
+      "flashinfer-python==${FLASHINFER_VERSION}" \
+      "flashinfer-cubin==${FLASHINFER_VERSION}" \
+  && python3 -c "import flashinfer; import vllm; print('flashinfer', flashinfer.__version__, 'vllm', vllm.__version__)"
+
+# Minimal training deps (no version pins). These are required by train_chess.sh / verl.
+RUN uv pip install --system --break-system-packages --no-deps \
+    accelerate \
+    antlr4-python3-runtime==4.9.3 \
+    codetiming \
+    datasets \
+    dill \
+    gitdb \
+    gitpython \
+    hydra-core \
+    importlib-metadata \
+    multiprocess \
+    omegaconf==2.3.0 \
+    pyyaml \
+    orjson \
+    packaging \
+    pandas \
+    peft \
+    pyarrow \
+    pybind11 \
+    pylatexenc \
+    pyvers \
+    smmap \
+    tensordict \
+    tensorboard \
+    torchdata \
+    wandb \
+    xxhash \
+    zipp \
+    huggingface_hub \
+    ray
+
+# chess: python-chess has been moved; install the actual module package.
+RUN uv pip install --system --break-system-packages chess \
+  && python3 -c "import chess; print('chess', chess.__version__)"
+
+# Restore the NGC torch stack in case pip pulled CPU wheels as dependencies.
+RUN rm -rf \
+      /usr/local/lib/python3.12/dist-packages/torch \
+      /usr/local/lib/python3.12/dist-packages/torch-*.dist-info \
+      /usr/local/lib/python3.12/dist-packages/torchvision \
+      /usr/local/lib/python3.12/dist-packages/torchvision-*.dist-info
+COPY --from=torch_base /usr/local/lib/python3.12/dist-packages/torch /usr/local/lib/python3.12/dist-packages/torch
+COPY --from=torch_base /usr/local/lib/python3.12/dist-packages/torch-2.8.0a0+5228986c39.nv25.5.dist-info /usr/local/lib/python3.12/dist-packages/torch-2.8.0a0+5228986c39.nv25.5.dist-info
+COPY --from=torch_base /usr/local/lib/python3.12/dist-packages/torchvision /usr/local/lib/python3.12/dist-packages/torchvision
+COPY --from=torch_base /usr/local/lib/python3.12/dist-packages/torchvision-0.22.0a0.dist-info /usr/local/lib/python3.12/dist-packages/torchvision-0.22.0a0.dist-info
+# Stockfish engine + NNUE net.
+COPY --from=stockfish_builder /tmp/stockfish/src/stockfish /usr/local/bin/stockfish
+COPY --from=stockfish_builder /tmp/stockfish/src/nn-*.nnue /usr/local/bin/
+COPY --from=stockfish_builder /tmp/stockfish/Copying.txt /usr/local/share/licenses/stockfish/Copying.txt
+
+ENTRYPOINT ["bash", "-lc"]
+CMD ["python3 -V"]

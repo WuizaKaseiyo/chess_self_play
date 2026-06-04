@@ -1,0 +1,14 @@
+{
+  "5cw6hm16": "/projects/a5l/ziyan/chess_rl_outputs/ours_onlineplay_expectedscorewdl_batched_20260128_114940/checkpoints/global_step_400",
+  "82fpo6l0": "/projects/a5l/ziyan/chess_rl_outputs/cr1_expectedscore_wdl_fulleval_20260128_114750/checkpoints/global_step_781",
+  "azs0jkjg": "/projects/a5l/ziyan/chess_rl_outputs/cr1_rankamongmoves_fulleval_20260127_072806/checkpoints/global_step_320",
+  "dg41tlmo": "/projects/a5l/ziyan/chess_rl_outputs/cr1_expectedscore_wdl_fulleval_20260127_072806/checkpoints/global_step_360",
+  "h4rhtpg5": "/projects/a5l/ziyan/chess_rl_outputs/ours_dataset_expectedscorewdlvsbest_selectprompt_fulleval_20260128_114910/checkpoints/global_step_720",
+  "h6sqp0z4": "/projects/a5l/ziyan/chess_rl_outputs/ours_onlineplay_expectedscorewdl_batched_20260128_114900/checkpoints/global_step_720",
+  "iu768gtj": "/projects/a5l/ziyan/chess_rl_outputs/cr1_winratevsbest_fulleval_20260126_225600/checkpoints/global_step_781",
+  "mk76juq4": "/projects/a5l/ziyan/chess_rl_outputs/cr1_expectedscore_wdl_fulleval_20260126_225600/checkpoints/global_step_781",
+  "nxhozx89": "/projects/a5l/ziyan/chess_rl_outputs/cr1_winratevsbest_fulleval_20260127_072806/checkpoints/global_step_360",
+  "s0anl08n": "/projects/a5l/ziyan/chess_rl_outputs/ours_dataset_expectedscorewdlvsbest_selectprompt_fulleval_20260128_114950/checkpoints/global_step_560",
+  "u2cuw56a": "/projects/a5l/ziyan/chess_rl_outputs/cr1_expectedscore_wdl_fulleval_20260128_114800/checkpoints/global_step_560",
+  "yu8phknt": "/projects/a5l/ziyan/chess_rl_outputs/cr1_rankamongmoves_fulleval_20260126_225600/checkpoints/global_step_781"
+}

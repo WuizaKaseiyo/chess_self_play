@@ -1,0 +1,44 @@
+__pycache__/
+
+verl.egg-info/*
+
+wandb/*
+.third_party_cache/
+searchless_chess/
+
+outputs/
+
+*.err
+*.out
+
+# Selection-framed datasets are generated artifacts (keep out of git).
+data/chess_puzzles_select/
+data/chess_puzzles_select_v2/
+data/chess_puzzles_select_v3_fulllegal_curriculum/
+data/chess_puzzles_select_v3_mixture_curriculum/
+
+# Local W&B evidence / analysis cache (large; not source of truth).
+# Keep only final figures + the written markdown summary.
+analysis/tmp_download_test*/
+analysis/wandb_evidence/**
+!analysis/wandb_evidence/**/
+!analysis/wandb_evidence/**/guess_analysis/
+analysis/wandb_evidence/**/guess_analysis/**
+!analysis/wandb_evidence/**/guess_analysis/plots/
+!analysis/wandb_evidence/**/guess_analysis/plots/*.png
+!analysis/wandb_evidence/**/guess_analysis/summary_report.md
+!analysis/wandb_evidence/**/guess_analysis/report.md
+
+# Subset-selection eval caches (downloaded from cluster; large).
+analysis/select_eval_cache/
+
+# 2-move exhaustive eval caches (downloaded from cluster; large).
+analysis/select_pairs_eval_cache/
+
+# 3-move (k=3) triple eval caches (downloaded from cluster; large).
+analysis/select_triples_eval_cache/
+
+# Selection eval reports (generated locally; reproducible from cached results).
+analysis/select_eval_reports/
+analysis/select_pairs_eval_reports/
+analysis/select_triples_eval_reports/

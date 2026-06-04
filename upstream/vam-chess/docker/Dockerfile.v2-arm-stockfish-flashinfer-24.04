@@ -1,0 +1,89 @@
+# syntax=docker/dockerfile:1.7
+#
+# ARM64 (aarch64) chess_rl image built on Ubuntu 24.04 with vLLM preinstalled.
+# Base image (GH200-friendly, newer glibc): dustynv/vllm:r36.4-cu129-24.04
+#
+# Build + push:
+#   docker buildx build --platform linux/arm64 \
+#     -t gabr1e1/chess_rl:v2-arm-stockfish-flashinfer-24.04 \
+#     -f docker/Dockerfile.v2-arm-stockfish-flashinfer-24.04 \
+#     --push .
+#
+# Notes:
+# - We keep the image minimal: install python deps used by train_chess.sh and
+#   add Stockfish + FlashInfer on top of the vLLM base.
+# - The repo will be bind-mounted at /workspace/chess_rl on the cluster.
+
+ARG STOCKFISH_TAG=sf_16
+
+FROM --platform=$BUILDPLATFORM ubuntu:24.04 AS stockfish_builder
+ARG STOCKFISH_TAG
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    make \
+    g++-aarch64-linux-gnu \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch "${STOCKFISH_TAG}" https://github.com/official-stockfish/Stockfish.git /tmp/stockfish
+
+WORKDIR /tmp/stockfish/src
+
+# Cross-compile for ARMv8 (aarch64).
+RUN make clean >/dev/null || true
+RUN make build ARCH=armv8 COMP=gcc COMPCXX=aarch64-linux-gnu-g++ -j"$(nproc)"
+
+# Reduce binary size; ignore failure (strip is optional).
+RUN aarch64-linux-gnu-strip /tmp/stockfish/src/stockfish || true
+
+
+FROM --platform=$TARGETPLATFORM dustynv/vllm:r36.4-cu129-24.04
+
+ARG FLASHINFER_VERSION=0.5.2
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_INDEX_URL=https://pypi.org/simple \
+    PIP_EXTRA_INDEX_URL=https://pypi.jetson-ai-lab.dev/jp6/cu129 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/workspace/chess_rl \
+    PATH=/workspace/chess_rl:${PATH}
+
+WORKDIR /workspace/chess_rl
+
+# Core chess deps used by the training/eval scripts.
+RUN python3 -m pip install --no-cache-dir \
+    python-chess \
+    codetiming \
+    datasets \
+    dill \
+    hydra-core \
+    pandas \
+    peft \
+    'pyarrow>=19.0.0' \
+    pybind11 \
+    pylatexenc \
+    'tensordict>=0.8.0,<=0.10.0,!=0.9.0' \
+    torchdata \
+    wandb \
+    'packaging>=20.0' \
+    tensorboard \
+    huggingface_hub
+
+# FlashInfer (vLLM optional acceleration). Keep versions aligned.
+RUN python3 -m pip install --no-cache-dir --force-reinstall \
+      "flashinfer-python==${FLASHINFER_VERSION}" \
+      "flashinfer-cubin==${FLASHINFER_VERSION}" \
+  && python3 -c "import flashinfer; import vllm; print('flashinfer', flashinfer.__version__, 'vllm', vllm.__version__)"
+
+# Stockfish engine + NNUE net.
+COPY --from=stockfish_builder /tmp/stockfish/src/stockfish /usr/local/bin/stockfish
+COPY --from=stockfish_builder /tmp/stockfish/src/nn-*.nnue /usr/local/bin/
+COPY --from=stockfish_builder /tmp/stockfish/Copying.txt /usr/local/share/licenses/stockfish/Copying.txt
+
+ENTRYPOINT ["bash", "-lc"]
+CMD ["python3 -V"]

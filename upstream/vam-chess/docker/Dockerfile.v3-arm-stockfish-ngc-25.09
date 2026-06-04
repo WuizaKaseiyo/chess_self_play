@@ -1,0 +1,79 @@
+# syntax=docker/dockerfile:1.7
+#
+# ARM64 (aarch64) chess_rl image based on NVIDIA NGC vLLM 25.09.
+# Base image: nvcr.io/nvidia/vllm:25.09-py3
+#
+# Build + push:
+#   docker buildx build --platform linux/arm64 \
+#     -t gabr1e1/chess_rl:v3-arm-stockfish-ngc-25.09 \
+#     -f docker/Dockerfile.v3-arm-stockfish-ngc-25.09 \
+#     --push .
+#
+# Notes:
+# - FlashInfer / FlashAttention are provided by the base image; we do not reinstall them.
+# - The repo will be bind-mounted at /workspace/chess_rl on the cluster.
+
+ARG STOCKFISH_TAG=sf_16
+
+FROM --platform=$BUILDPLATFORM ubuntu:24.04 AS stockfish_builder
+ARG STOCKFISH_TAG
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    make \
+    g++-aarch64-linux-gnu \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch "${STOCKFISH_TAG}" https://github.com/official-stockfish/Stockfish.git /tmp/stockfish
+
+WORKDIR /tmp/stockfish/src
+
+# Cross-compile for ARMv8 (aarch64).
+RUN make clean >/dev/null || true
+RUN make build ARCH=armv8 COMP=gcc COMPCXX=aarch64-linux-gnu-g++ -j"$(nproc)"
+
+# Reduce binary size; ignore failure (strip is optional).
+RUN aarch64-linux-gnu-strip /tmp/stockfish/src/stockfish || true
+
+
+FROM --platform=$TARGETPLATFORM nvcr.io/nvidia/vllm:25.09-py3
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_INDEX_URL=https://pypi.org/simple \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/workspace/chess_rl \
+    PATH=/workspace/chess_rl:${PATH}
+
+WORKDIR /workspace/chess_rl
+
+# Core chess deps used by the training/eval scripts.
+RUN python3 -m pip install --no-cache-dir \
+    python-chess \
+    codetiming \
+    datasets \
+    dill \
+    hydra-core \
+    pandas \
+    peft \
+    'pyarrow>=19.0.0' \
+    pybind11 \
+    pylatexenc \
+    'tensordict>=0.8.0,<=0.10.0,!=0.9.0' \
+    torchdata \
+    wandb \
+    'packaging>=20.0' \
+    tensorboard \
+    huggingface_hub
+
+# Stockfish engine + NNUE net.
+COPY --from=stockfish_builder /tmp/stockfish/src/stockfish /usr/local/bin/stockfish
+COPY --from=stockfish_builder /tmp/stockfish/src/nn-*.nnue /usr/local/bin/
+COPY --from=stockfish_builder /tmp/stockfish/Copying.txt /usr/local/share/licenses/stockfish/Copying.txt
+
+ENTRYPOINT ["bash", "-lc"]
+CMD ["python3 -V"]

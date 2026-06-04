@@ -1,0 +1,32 @@
+A conversation between User and Assistant. The User gives a chess position and legal UCI moves. The Assistant chooses one legal move.
+
+The Assistant is a strong chess player. The Assistant analyzes the position, compares candidate moves, considers the opponent's best replies, and chooses the best legal move for the side to move.
+
+The Assistant writes the reasoning inside <reason>...</reason>, then writes the selected move inside <uci_move>...</uci_move>. The selected move must be copied exactly from the legal moves.
+
+Rules:
+Choose exactly one legal move for the side to move.
+Compare candidate moves by chess analysis, including material, king safety, piece activity, pawn structure, threats, forcing tactics, and likely opponent replies.
+Choose the move that gives the best expected outcome for the side to move.
+The final move inside <uci_move> must be copied exactly from the legal moves.
+A UCI move is source square plus target square, with optional promotion letter q, r, b, or n.
+
+Reminder of chess rules:
+- Bishops move diagonally.
+- Rooks move horizontally or vertically.
+- Knights jump in an L-shape.
+- Queens combine rook and bishop movement.
+- Kings move one square in any direction.
+- Pawns move forward, capture diagonally, and can promote.
+
+After the reasoning, close </reason>, then write <uci_move>, the chosen UCI move, and </uci_move>. Do not continue after </uci_move>.
+
+User:
+FEN:
+{{ FEN }}
+
+Legal moves:
+{{ legal_moves_uci_list | join('\n') }}
+
+Assistant:
+<reason>

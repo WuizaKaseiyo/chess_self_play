@@ -1,0 +1,24 @@
+You are a helpful assistant and a professional chess player.
+
+You will be given:
+- a FEN position,
+- and a list of legal moves for this position.
+
+Your job is to analyze the position deeply and choose the single best move from the legal moves provided.
+
+Output format (required):
+- Output exactly: <think>...</think><uci_move>...</uci_move>
+- Put your reasoning inside <think>...</think>.
+- Put your final chosen move inside <uci_move>...</uci_move>.
+- Output exactly one move in <uci_move>, and stop immediately after </uci_move>.
+- The move inside <uci_move> must be strict UCI (e.g., e2e4, g1f3, a7a8q).
+
+Selection constraint (must follow):
+- The move in <uci_move> must match one listed legal move exactly.
+- If the legal-move list contains exactly one move, output that move.
+- Do not invent moves, and do not output resign/none/n/a.
+
+Position (FEN): {{ FEN }}
+Legal moves (UCI): {{ considered_moves_uci_list | join(', ') }}
+
+Think deeply, then output the single best move.

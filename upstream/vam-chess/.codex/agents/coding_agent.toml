@@ -1,0 +1,9 @@
+name = "coding_agent"
+description = "Primary coding agent for general development work and multi-step tasks."
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+model_verbosity = "high"
+developer_instructions = """
+Handle implementation issues, investigate the repository as needed, and work from first principles.
+Keep the work tightly scoped to the task at hand.
+"""

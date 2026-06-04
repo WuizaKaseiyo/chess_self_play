@@ -18,17 +18,26 @@ next step and not yet included.
 ```
 chess_self_play/
 ├── README.md                                    ← this file
+├── LICENSE                                      ← Apache 2.0
+├── NOTICE                                       ← attribution / vendoring note
 ├── scripts/                                     ← sbatch launchers (sanitized)
 │   ├── sbatch_train_teacher_7b.slurm           Stage A — train teacher
 │   ├── sbatch_train_distill_3b.slurm           Stage B — on-policy distillation
 │   ├── sbatch_eval_passk.slurm                 Stage C — puzzle pass@k eval
 │   ├── sbatch_eval_fullgame.slurm              Stage C — full game vs Stockfish
 │   └── sbatch_eval_h2h.slurm                   Stage C — head-to-head
+├── upstream/                                    ← VENDORED training framework (Apache 2.0)
+│   └── vam-chess/                              chess RL recipe + verl trainer
+│       ├── recipe/chess/                          reward fn, prompt templates, SF scoring
+│       ├── recipe/chess_distill/                  distill launcher
+│       ├── verl/                                  RL framework (Pass@k, distill estimators)
+│       ├── scripts/                               eval_chess_passk.py, eval_chess_fullgame.py, ...
+│       ├── train_chess.sh                         main training launcher
+│       └── ...
 ├── results/                                     ← eval artifacts from our runs
 │   ├── teacher_step640_passk.json              7B teacher final pass@k
 │   ├── distill_step{50..300}_passk.json        3B distill learning curve
 │   ├── student_baseline_passk.json             3B base pass@k (no training)
-│   ├── teacher_passk/                          Detailed teacher rollouts
 │   ├── distill_step300_fullgame/               50 games distill vs SF d5
 │   ├── distill_s300_fullgame_d1/               50 games distill vs SF d1
 │   ├── base3b_fullgame_d1/                     50 games base 3B vs SF d1
@@ -42,12 +51,10 @@ chess_self_play/
 
 ## What this is NOT
 
-- **Not** a fork of the RL framework. The training code lives in a separate
-  upstream clone (`UPSTREAM_DIR` env var below). This repo holds only the
-  experiment configs, eval artifacts, and reproduction recipe.
 - **Not** Phase 2. The asymmetric multi-turn self-play work (RAG opponent,
   trajectory-level reward, two-actor RL) is the next phase and is not in
-  this repo yet.
+  this repo yet — the present snapshot covers Phase 1 (puzzle-graded RL +
+  on-policy distillation) only.
 
 ---
 
@@ -90,27 +97,35 @@ chess_self_play/
 
 ## Prerequisites
 
-### 1. Upstream framework
+### 1. Training framework (bundled)
 
-`scripts/*.slurm` shell out to an upstream framework that you must clone
-separately. It is a [verl](https://github.com/volcengine/verl) fork with a
-chess RL recipe (`recipe/chess/`) plus an on-policy distillation recipe
-(`recipe/chess_distill/`). The recipe adds:
+The training framework lives in [`upstream/vam-chess/`](upstream/vam-chess/)
+inside this repo. It is a chess-specific recipe layered on top of an
+upstream RL training library, redistributed here under Apache 2.0 (see
+[NOTICE](NOTICE) and [`upstream/vam-chess/LICENSE`](upstream/vam-chess/LICENSE)).
+Key pieces:
 
-- a **Pass@k GRPO** advantage estimator
-  (`verl/trainer/ppo/core_algos.py:passk_advantages_max_subsets`)
-- a **distill** advantage estimator that uses per-token reverse-KL
+- **Pass@k GRPO** advantage estimator —
+  [`upstream/vam-chess/verl/trainer/ppo/core_algos.py`](upstream/vam-chess/verl/trainer/ppo/core_algos.py)
+  (`passk_advantages_max_subsets`)
+- **Distill** advantage estimator — per-token reverse-KL, same file
   (`AdvantageEstimator.DISTILL`)
-- a Stockfish-graded reward function (`recipe/chess/reward_fn.py`)
-- Lichess puzzle data preprocessing under `data/chess_puzzles_*/`
+- **Stockfish-graded reward** — [`upstream/vam-chess/recipe/chess/reward_fn.py`](upstream/vam-chess/recipe/chess/reward_fn.py)
+- **Online play / multi-step rollout hook** —
+  [`upstream/vam-chess/verl/trainer/ppo/ray_trainer.py`](upstream/vam-chess/verl/trainer/ppo/ray_trainer.py)
+  (`_build_self_play_train_batch`)
 
-Once you have the framework cloned, set:
+`UPSTREAM_DIR` defaults to `<repo_root>/upstream/vam-chess`, so the sbatch
+launchers in `scripts/` work out of the box. To point them at a different
+upstream tree, pass `--export=ALL,UPSTREAM_DIR=/path/to/your/clone,...` to
+`sbatch`.
 
-```bash
-export UPSTREAM_DIR=$HOME/chess_upstream    # adjust to your clone path
-```
-
-The launchers `cd` into `${UPSTREAM_DIR}` and put it first on `PYTHONPATH`.
+> Puzzle data is **not** bundled (the parquets are large). The launcher
+> expects them at
+> `${UPSTREAM_DIR}/data/chess_puzzles_chessr1_aligned_sharded_baseline/`.
+> Run the upstream's `scripts/build_chessr1_aligned_dataset.py` (or the
+> matching sbatch under `upstream/vam-chess/`) to materialise them from the
+> public [Lichess puzzle database](https://database.lichess.org/).
 
 ### 2. Base models
 
@@ -171,7 +186,7 @@ export WANDB_API_KEY=...   # your own key; never commit it
 cd /path/to/chess_self_play
 
 sbatch \
-    --export=ALL,UPSTREAM_DIR=$HOME/chess_upstream,WANDB_API_KEY=$WANDB_API_KEY \
+    --export=ALL,WANDB_API_KEY=$WANDB_API_KEY \
     scripts/sbatch_train_teacher_7b.slurm
 ```
 
@@ -179,7 +194,7 @@ sbatch \
 
 ```bash
 sbatch \
-    --export=ALL,UPSTREAM_DIR=$HOME/chess_upstream,WANDB_API_KEY=$WANDB_API_KEY,SMOKE=1 \
+    --export=ALL,WANDB_API_KEY=$WANDB_API_KEY,SMOKE=1 \
     scripts/sbatch_train_teacher_7b.slurm
 ```
 
@@ -248,7 +263,7 @@ carries the teacher's log-prob, so no new worker is written.
 ```bash
 sbatch \
     --export=ALL,\
-UPSTREAM_DIR=$HOME/chess_upstream,\
+\
 TEACHER_CKPT=$HOME/models/chess_teacher_7b_step640,\
 WANDB_API_KEY=$WANDB_API_KEY \
     scripts/sbatch_train_distill_3b.slurm
@@ -278,7 +293,7 @@ the path you supply via `OUT_DIR` / `OUT_PATH`.
 
 ```bash
 sbatch --export=ALL,\
-UPSTREAM_DIR=$HOME/chess_upstream,\
+\
 MODEL=$HOME/models/chess_teacher_7b_step640,\
 OUT_PATH=results/my_teacher_passk.json \
     scripts/sbatch_eval_passk.slurm
@@ -290,7 +305,7 @@ Runs `eval_chess_passk.py` on the held-out test parquet with k=1..8 and dumps a 
 
 ```bash
 sbatch --export=ALL,\
-UPSTREAM_DIR=$HOME/chess_upstream,\
+\
 MODEL=$HOME/models/chess_teacher_7b_step640,\
 OUT_DIR=results/my_teacher_fullgame_d5,\
 OPPONENT_DEPTHS=5,GAMES_PER_DEPTH=50,\
@@ -306,7 +321,7 @@ Output:
 
 ```bash
 sbatch --export=ALL,\
-UPSTREAM_DIR=$HOME/chess_upstream,\
+\
 MODEL_A=$HOME/models/chess_distill_3b_step300,\
 MODEL_B=$HOME/models/chess_teacher_7b_step640,\
 OUT_DIR=results/my_h2h \
@@ -333,27 +348,27 @@ The artifacts in `results/` came from these sbatch invocations:
 
 ```bash
 # Teacher pass@k (after merging step 640 ckpt to HF)
-sbatch --export=ALL,UPSTREAM_DIR=...,MODEL=$TEACHER_HF,\
+sbatch --export=ALL,MODEL=$TEACHER_HF,\
        OUT_PATH=results/teacher_step640_passk.json \
        scripts/sbatch_eval_passk.slurm
 
 # Distill curve: do this for each saved step in [50, 100, 150, 200, 250, 300]
 for STEP in 50 100 150 200 250 300; do
-    sbatch --export=ALL,UPSTREAM_DIR=...,\
+    sbatch --export=ALL,\
 MODEL=$HOME/models/chess_distill_3b_step${STEP},\
 OUT_PATH=results/distill_step${STEP}_passk.json \
         scripts/sbatch_eval_passk.slurm
 done
 
 # Distill step 300 full-game vs SF d=5
-sbatch --export=ALL,UPSTREAM_DIR=...,\
+sbatch --export=ALL,\
 MODEL=$HOME/models/chess_distill_3b_step300,\
 OUT_DIR=results/distill_step300_fullgame,\
 OPPONENT_DEPTHS=5 \
        scripts/sbatch_eval_fullgame.slurm
 
 # Distill vs teacher h2h
-sbatch --export=ALL,UPSTREAM_DIR=...,\
+sbatch --export=ALL,\
 MODEL_A=$HOME/models/chess_distill_3b_step300,\
 MODEL_B=$HOME/models/chess_teacher_7b_step640,\
 OUT_DIR=results/distill_vs_teacher_h2h \

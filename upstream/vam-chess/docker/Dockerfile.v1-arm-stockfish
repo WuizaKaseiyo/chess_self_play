@@ -1,0 +1,57 @@
+# syntax=docker/dockerfile:1.7
+#
+# Build an ARM64 (aarch64) chess_rl image that includes a working Stockfish 16
+# binary at /usr/local/bin/stockfish.
+#
+# Why this file exists:
+# - The repo's checked-in Stockfish binary under `.third_party_cache/` is x86_64.
+# - When running `gabr1e1/chess_rl:v1-arm` (linux/arm64), that x86_64 binary
+#   cannot execute.
+# - Compiling Stockfish *inside* an emulated arm64 container under QEMU is flaky
+#   (we've observed g++ segfaults at -O3). This Dockerfile cross-compiles Stockfish
+#   for aarch64 on the native build platform and then copies it into the arm64 image.
+#
+# Build + push:
+#   docker buildx build --platform linux/arm64 -t gabr1e1/chess_rl:v1-arm-stockfish -f docker/Dockerfile.v1-arm-stockfish --push .
+
+ARG STOCKFISH_TAG=sf_16
+
+FROM --platform=$BUILDPLATFORM ubuntu:22.04 AS stockfish_builder
+ARG STOCKFISH_TAG
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    make \
+    g++-aarch64-linux-gnu \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch "${STOCKFISH_TAG}" https://github.com/official-stockfish/Stockfish.git /tmp/stockfish
+
+WORKDIR /tmp/stockfish/src
+
+# Cross-compile for ARMv8 (aarch64) using the GNU cross toolchain.
+# - Keep Stockfish's default -O3 + LTO flags (fast engine; used for rescoring).
+# - `make build` also downloads the default NNUE net into this directory.
+RUN make clean >/dev/null || true
+RUN make build ARCH=armv8 COMP=gcc COMPCXX=aarch64-linux-gnu-g++ -j"$(nproc)"
+
+# Reduce binary size; ignore failure (strip is optional).
+RUN aarch64-linux-gnu-strip /tmp/stockfish/src/stockfish || true
+
+
+FROM --platform=$TARGETPLATFORM gabr1e1/chess_rl:v1-arm
+
+# Put the engine on PATH.
+COPY --from=stockfish_builder /tmp/stockfish/src/stockfish /usr/local/bin/stockfish
+
+# Put the default NNUE net alongside the binary so the engine can find it when
+# `EvalFile` is left at the default basename (no path).
+COPY --from=stockfish_builder /tmp/stockfish/src/nn-*.nnue /usr/local/bin/
+
+# Minimal license traceability.
+COPY --from=stockfish_builder /tmp/stockfish/Copying.txt /usr/local/share/licenses/stockfish/Copying.txt
+

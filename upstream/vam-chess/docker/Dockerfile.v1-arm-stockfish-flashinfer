@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1.7
+#
+# Build an ARM64 (aarch64) chess_rl image that includes FlashInfer for vLLM.
+#
+# This image is a minimal layer on top of `gabr1e1/chess_rl:v1-arm-stockfish`.
+#
+# Build + push:
+#   docker buildx build --platform linux/arm64 \
+#     -t gabr1e1/chess_rl:v1-arm-stockfish-flashinfer \
+#     -f docker/Dockerfile.v1-arm-stockfish-flashinfer \
+#     --push .
+#
+# Notes:
+# - vLLM pins FlashInfer to an exact version; keep flashinfer-python and
+#   flashinfer-cubin aligned.
+# - Use `--no-deps` to avoid perturbing the pinned Torch/NumPy stack in the base
+#   image.
+
+FROM --platform=$TARGETPLATFORM gabr1e1/chess_rl:v1-arm-stockfish
+
+ARG FLASHINFER_VERSION=0.5.2
+
+RUN python3 -m pip install --no-cache-dir --no-deps --force-reinstall \
+      "flashinfer-python==${FLASHINFER_VERSION}" \
+      "flashinfer-cubin==${FLASHINFER_VERSION}" \
+  && python3 -c "import flashinfer; import vllm; print('flashinfer', flashinfer.__version__, 'vllm', vllm.__version__)"
+
