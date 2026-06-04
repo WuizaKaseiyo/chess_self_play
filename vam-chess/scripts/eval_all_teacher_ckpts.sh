@@ -313,7 +313,7 @@ print(f"[BEST TEACHER] step={best[0]}  pass@1={best[1]:.4f}  pass@{best[3]}={bes
 
 # Pin the choice for downstream Phase D.
 best_step = best[0]
-ckpt_path = Path(os.environ.get("PROJECT_DIR", "$HOME/chess/vam-chess")) \
+ckpt_path = Path(os.environ.get("PROJECT_DIR") or os.path.expanduser("~/chess/vam-chess")) \
     / "outputs/44e1d0cf255c0621/checkpoints" / f"global_step_{best_step}/actor/huggingface"
 out = results_dir / "BEST_TEACHER"
 out.write_text(str(ckpt_path) + "\n")
