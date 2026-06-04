@@ -14,14 +14,37 @@ results/         pass@k JSONs + full-game PGNs + h2h moves.jsonl
 progress_report/ md + html report with charts
 ```
 
-## Prereqs
+## Environment setup
 
-- `vam-chess/` is bundled. `UPSTREAM_DIR` defaults to it.
-- Models: `Qwen/Qwen2.5-7B-Instruct`, `Qwen/Qwen2.5-3B-Instruct` (`huggingface-cli download`)
-- Stockfish 16 (bmi2 build), `STOCKFISH_BIN=/path/to/stockfish`
-- `conda activate chess`; deps in `vam-chess/requirements.txt`
-- `export WANDB_API_KEY=...`
-- Puzzle data: produce via `vam-chess/scripts/build_chessr1_aligned_dataset.py` from the [Lichess puzzle DB](https://database.lichess.org/)
+```bash
+# 1. Conda env
+conda create -n chess python=3.10 -y
+conda activate chess
+
+# 2. Deps (CUDA build of flash-attn assumed; swap to requirements-npu.txt for Ascend)
+cd vam-chess
+pip install -r requirements.txt
+pip install -r requirements-cuda.txt    # flash-attn
+pip install vllm==0.10.0                  # rollout backend
+pip install -e .                          # install verl in editable mode
+
+# 3. Stockfish 16 (need bmi2 build, not the apt one)
+cd /tmp && git clone https://github.com/official-stockfish/Stockfish.git
+cd Stockfish/src && make -j build ARCH=x86-64-bmi2
+export STOCKFISH_BIN=/tmp/Stockfish/src/stockfish
+
+# 4. Base models
+huggingface-cli download Qwen/Qwen2.5-7B-Instruct --local-dir $HOME/models/Qwen2.5-7B-Instruct
+huggingface-cli download Qwen/Qwen2.5-3B-Instruct --local-dir $HOME/models/Qwen2.5-3B-Instruct
+
+# 5. WandB
+export WANDB_API_KEY=...
+
+# 6. Puzzle data (Lichess; ~5 GB raw, ~1 GB after SF grading)
+cd vam-chess && python scripts/build_chessr1_aligned_dataset.py --out-dir data/chess_puzzles_chessr1_aligned_sharded_baseline
+```
+
+A Dockerfile is provided at `vam-chess/Dockerfile` if you prefer that over conda.
 
 ## Train teacher (7B, Pass@k GRPO, ~640 steps on 4× H100)
 
