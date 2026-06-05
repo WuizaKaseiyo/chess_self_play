@@ -6,12 +6,12 @@ This repository bundles:
 1) Original work (sbatch launchers, eval artifacts, progress reports) under
    `scripts/`, `results/`, `progress_report/`, `README.md`.
 
-2) A vendored chess RL framework under `vam-chess/`. This subtree
+2) A vendored chess RL framework under `verl-vam-chess/`. This subtree
    is a chess-specific recipe layered on top of an upstream RL training
    library and is redistributed under the Apache License 2.0. See
-   `vam-chess/LICENSE` and `vam-chess/Notice.txt` for the
+   `verl-vam-chess/LICENSE` and `verl-vam-chess/Notice.txt` for the
    underlying notices.
 
-All files outside `vam-chess/` that do not carry their own
+All files outside `verl-vam-chess/` that do not carry their own
 copyright header may be considered released under the Apache License 2.0.
 A copy of the license is included at the repository root (`LICENSE`).

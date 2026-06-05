@@ -4,8 +4,8 @@ Two-phase research repo for chess-RL with LLM agents.
 
 | Phase | Subdir | Framework | Tasks |
 |---|---|---|---|
-| **Phase 1** (complete) | [`vam-chess/`](vam-chess/) | vanilla verl | Single-step puzzle RL — 7B teacher + 3B distillation |
-| **Phase 2** (in progress) | [`vam-agent/`](vam-agent/) | verl-agent | Multi-turn chess agents (full game / chesslesson / puzzle env) — with **Verbalized Action Masking (VAM)** |
+| **Phase 1** (complete) | [`verl-vam-chess/`](verl-vam-chess/) | vanilla verl | Single-step puzzle RL — 7B teacher + 3B distillation |
+| **Phase 2** (in progress) | [`verl-agent-vam-agent/`](verl-agent-vam-agent/) | verl-agent | Multi-turn chess agents (full game / chesslesson / puzzle env) — with **Verbalized Action Masking (VAM)** |
 
 **Phase 1 headline**: 3B student distilled from 7B teacher reaches puzzle pass@8 = **0.476** vs paper's 0.425, with **~16× fewer training samples**.
 
@@ -19,16 +19,16 @@ Two-phase research repo for chess-RL with LLM agents.
 chess_self_play/
 ├── README.md            ← this file
 ├── LICENSE / NOTICE     ← Apache 2.0
-├── scripts/             ← Phase 1 sbatch launchers (vam-chess style)
+├── scripts/             ← Phase 1 sbatch launchers (verl-vam-chess style)
 ├── results/             ← Phase 1 distill eval artifacts (pass@k, full-game PGNs, h2h)
 ├── progress_report/     ← Phase 1 written report (md + html with charts)
-├── vam-chess/           ← Phase 1 vendored upstream (vanilla verl + chess recipe)
-└── vam-agent/           ← Phase 2 vendored upstream (verl-agent + chess envs + VAM)
+├── verl-vam-chess/           ← Phase 1 vendored upstream (vanilla verl + chess recipe)
+└── verl-agent-vam-agent/           ← Phase 2 vendored upstream (verl-agent + chess envs + VAM)
 ```
 
 ---
 
-# Phase 1 — Pass@k GRPO teacher + distillation (vam-chess)
+# Phase 1 — Pass@k GRPO teacher + distillation (verl-vam-chess)
 
 ## Environment setup
 
@@ -36,7 +36,7 @@ chess_self_play/
 conda create -n chess python=3.10 -y
 conda activate chess
 
-cd vam-chess
+cd verl-vam-chess
 pip install -r requirements.txt
 pip install -r requirements-cuda.txt
 pip install vllm==0.10.0
@@ -54,7 +54,7 @@ huggingface-cli download Qwen/Qwen2.5-3B-Instruct --local-dir $HOME/models/Qwen2
 export WANDB_API_KEY=...
 
 # Puzzle data (Chess-R1 aligned + SF μ-grading, ~5 GB)
-cd vam-chess && python scripts/build_chessr1_aligned_dataset.py \
+cd verl-vam-chess && python scripts/build_chessr1_aligned_dataset.py \
     --out-dir data/chess_puzzles_chessr1_aligned_sharded_baseline
 ```
 
@@ -113,9 +113,9 @@ Caveats: Pass@k on puzzles ≠ real chess strength. Both models lose 0/50 to Sto
 
 ---
 
-# Phase 2 — Multi-turn chess agents with VAM (vam-agent)
+# Phase 2 — Multi-turn chess agents with VAM (verl-agent-vam-agent)
 
-`vam-agent/` is a vendored fork of [verl-agent](https://github.com/langfengQ/verl-agent) (chess-agent variant) extended with **Verbalized Action Masking** (VAM, from chess-rl-C224 EMNLP paper).
+`verl-agent-vam-agent/` is a vendored fork of [verl-agent](https://github.com/langfengQ/verl-agent) (chess-agent variant) extended with **Verbalized Action Masking** (VAM, from chess-rl-C224 EMNLP paper).
 
 ## Three environments, all VAM-aware
 
@@ -130,7 +130,7 @@ Algorithm: **HGPO** (verl-agent's hierarchical-group GRPO variant for long-horiz
 ## Quick env smoke (CPU, no GPU)
 
 ```bash
-cd vam-agent
+cd verl-agent-vam-agent
 python tests/test_vam_chess_env.py          # chess env w/ VAM, 6 tests
 python tests/test_vam_lichess_puzzle_env.py # lichess_puzzle env w/ VAM, 7 tests
 ```
@@ -160,7 +160,7 @@ env:
 ## Train
 
 ```bash
-cd vam-agent
+cd verl-agent-vam-agent
 export WANDB_API_KEY=...
 
 # Multi-turn full game with VAM
@@ -203,8 +203,8 @@ After RL training: target is to move multi-move acc from 1.5% → 30%+.
 
 ## Roadmap
 
-- **Track A (vam-chess)**: Lichess-pedagogy curriculum (mate → tactics → endgame), retrain teacher with theme-stratified data.
-- **Track B (vam-agent)**: chesslesson + chess/WhiteVsRandom training with VAM, then asymmetric self-play (RAG opponent, dual trainable actors).
+- **Track A (verl-vam-chess)**: Lichess-pedagogy curriculum (mate → tactics → endgame), retrain teacher with theme-stratified data.
+- **Track B (verl-agent-vam-agent)**: chesslesson + chess/WhiteVsRandom training with VAM, then asymmetric self-play (RAG opponent, dual trainable actors).
 
 ---
 
@@ -212,4 +212,4 @@ After RL training: target is to move multi-move acc from 1.5% → 30%+.
 
 Apache 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-Both `vam-chess/` and `vam-agent/` are vendored from upstream Apache-2.0 projects; original copyrights are preserved in their respective `LICENSE` / `Notice.txt` files.
+Both `verl-vam-chess/` and `verl-agent-vam-agent/` are vendored from upstream Apache-2.0 projects; original copyrights are preserved in their respective `LICENSE` / `Notice.txt` files.
