@@ -1,61 +1,69 @@
 # chess_self_play
 
-Phase 1 snapshot: 7B chess-RL teacher + 3B on-policy distillation student.
-Phase 2 (multi-turn self-play) is the next step, not yet included.
+Two-phase research repo for chess-RL with LLM agents.
 
-**Headline**: Distill 3B reaches pass@8 = **0.476** vs paper's 3B RL baseline 0.425, using **~16× fewer samples**.
+| Phase | Subdir | Framework | Tasks |
+|---|---|---|---|
+| **Phase 1** (complete) | [`vam-chess/`](vam-chess/) | vanilla verl | Single-step puzzle RL — 7B teacher + 3B distillation |
+| **Phase 2** (in progress) | [`vam-agent/`](vam-agent/) | verl-agent | Multi-turn chess agents (full game / chesslesson / puzzle env) — with **Verbalized Action Masking (VAM)** |
+
+**Phase 1 headline**: 3B student distilled from 7B teacher reaches puzzle pass@8 = **0.476** vs paper's 0.425, with **~16× fewer training samples**.
+
+**Phase 2 headline (so far)**: chesslesson base zero-shot ≈ **1.5% multi-move acc** (Qwen2.5-7B-Instruct). RL training is the next step.
+
+---
 
 ## Layout
 
 ```
-scripts/         5 sbatch launchers (train teacher, train distill, eval)
-vam-chess/       vendored training framework (Apache 2.0)
-results/         pass@k JSONs + full-game PGNs + h2h moves.jsonl
-progress_report/ md + html report with charts
+chess_self_play/
+├── README.md            ← this file
+├── LICENSE / NOTICE     ← Apache 2.0
+├── scripts/             ← Phase 1 sbatch launchers (vam-chess style)
+├── results/             ← Phase 1 distill eval artifacts (pass@k, full-game PGNs, h2h)
+├── progress_report/     ← Phase 1 written report (md + html with charts)
+├── vam-chess/           ← Phase 1 vendored upstream (vanilla verl + chess recipe)
+└── vam-agent/           ← Phase 2 vendored upstream (verl-agent + chess envs + VAM)
 ```
+
+---
+
+# Phase 1 — Pass@k GRPO teacher + distillation (vam-chess)
 
 ## Environment setup
 
 ```bash
-# 1. Conda env
 conda create -n chess python=3.10 -y
 conda activate chess
 
-# 2. Deps (CUDA build of flash-attn assumed; swap to requirements-npu.txt for Ascend)
 cd vam-chess
 pip install -r requirements.txt
-pip install -r requirements-cuda.txt    # flash-attn
-pip install vllm==0.10.0                  # rollout backend
-pip install -e .                          # install verl in editable mode
+pip install -r requirements-cuda.txt
+pip install vllm==0.10.0
+pip install -e .
 
-# 3. Stockfish 16 (need bmi2 build, not the apt one)
-cd /tmp && git clone https://github.com/official-stockfish/Stockfish.git
-cd Stockfish/src && make -j build ARCH=x86-64-bmi2
+# Stockfish 16 (bmi2 build)
+git clone https://github.com/official-stockfish/Stockfish.git /tmp/Stockfish
+cd /tmp/Stockfish/src && make -j build ARCH=x86-64-bmi2
 export STOCKFISH_BIN=/tmp/Stockfish/src/stockfish
 
-# 4. Base models
+# Base models
 huggingface-cli download Qwen/Qwen2.5-7B-Instruct --local-dir $HOME/models/Qwen2.5-7B-Instruct
 huggingface-cli download Qwen/Qwen2.5-3B-Instruct --local-dir $HOME/models/Qwen2.5-3B-Instruct
 
-# 5. WandB
 export WANDB_API_KEY=...
 
-# 6. Puzzle data (Lichess; ~5 GB raw, ~1 GB after SF grading)
-cd vam-chess && python scripts/build_chessr1_aligned_dataset.py --out-dir data/chess_puzzles_chessr1_aligned_sharded_baseline
+# Puzzle data (Chess-R1 aligned + SF μ-grading, ~5 GB)
+cd vam-chess && python scripts/build_chessr1_aligned_dataset.py \
+    --out-dir data/chess_puzzles_chessr1_aligned_sharded_baseline
 ```
-
-A Dockerfile is provided at `vam-chess/Dockerfile` if you prefer that over conda.
 
 ## Train teacher (7B, Pass@k GRPO, ~640 steps on 4× H100)
 
 ```bash
 sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY scripts/sbatch_train_teacher_7b.slurm
-# Smoke: append SMOKE=1 to --export.
-```
 
-Merge FSDP → HF:
-
-```bash
+# Merge FSDP → HF
 python -m verl.model_merger merge --backend fsdp \
     --local_dir $HOME/chess_rl_outputs/teacher_7b_passk_<ts>/actor/global_step_640 \
     --target_dir $HOME/models/chess_teacher_7b_step640
@@ -86,11 +94,11 @@ sbatch --export=ALL,MODEL=<hf_dir>,OUT_PATH=results/x_passk.json scripts/sbatch_
 sbatch --export=ALL,MODEL=<hf_dir>,OUT_DIR=results/x_fullgame,OPPONENT_DEPTHS=5,STOCKFISH_BIN=... \
     scripts/sbatch_eval_fullgame.slurm
 
-# Head-to-head
+# Head-to-head model-vs-model
 sbatch --export=ALL,MODEL_A=<a>,MODEL_B=<b>,OUT_DIR=results/x_h2h scripts/sbatch_eval_h2h.slurm
 ```
 
-## Results summary
+## Phase 1 results summary
 
 | Model | Pass@1 | Pass@8 | Train samples |
 |---|---|---|---|
@@ -101,15 +109,107 @@ sbatch --export=ALL,MODEL_A=<a>,MODEL_B=<b>,OUT_DIR=results/x_h2h scripts/sbatch
 
 Full discussion + charts: [`progress_report/chess_distill_summary.md`](progress_report/chess_distill_summary.md).
 
-## Notes
+Caveats: Pass@k on puzzles ≠ real chess strength. Both models lose 0/50 to Stockfish d=1. Distill vs teacher h2h: distill "wins" 56/80 but ~49 wins were teacher format failures — pure-chess strength ratio ≈ 37/63. This motivates Phase 2.
 
-- Pass@k on puzzles ≠ real chess strength. Both models lose 0/50 to Stockfish d=1. Single-step puzzle solving is a different skill than full-game play — this motivates Phase 2.
-- Distill vs teacher h2h: distill "wins" 56/80, but ~49 wins came from teacher format failures (truncation mid-`<think>`). Pure-chess wins: ~37% distill / 63% teacher.
+---
+
+# Phase 2 — Multi-turn chess agents with VAM (vam-agent)
+
+`vam-agent/` is a vendored fork of [verl-agent](https://github.com/langfengQ/verl-agent) (chess-agent variant) extended with **Verbalized Action Masking** (VAM, from chess-rl-C224 EMNLP paper).
+
+## Three environments, all VAM-aware
+
+| Env name | Type | Data | VAM subset source |
+|---|---|---|---|
+| `chess/WhiteVsRandom` | Multi-turn full game | runtime (start position + random Black) | `random` / `stockfish` (SF top-k via MultiPV) |
+| `chesslesson/LichessLearn` | Multi-turn online puzzle | 170 Lichess "Learn chess" tasks (110 lessons + 60 coord) | *not wired yet* |
+| `lichess_puzzle/Curriculum` | Single-turn puzzle | chess-rl-C224 schema parquet (SF μ-graded) | `mu_topk` (precomputed μ) / `random` |
+
+Algorithm: **HGPO** (verl-agent's hierarchical-group GRPO variant for long-horizon tasks).
+
+## Quick env smoke (CPU, no GPU)
+
+```bash
+cd vam-agent
+python tests/test_vam_chess_env.py          # chess env w/ VAM, 6 tests
+python tests/test_vam_lichess_puzzle_env.py # lichess_puzzle env w/ VAM, 7 tests
+```
+
+## VAM config (env.chess.vam.* / env.lichess_puzzle.vam.*)
+
+```yaml
+env:
+  chess:
+    vam:
+      enable: True
+      k: 8                       # subset size
+      iterative: False           # remove prior picks across plies
+      subset_source: random      # random | stockfish
+      penalty: -1.0              # reward for out-of-subset pick
+      stockfish_path: ""         # if subset_source=stockfish
+      stockfish_depth: 1
+  lichess_puzzle:
+    vam:
+      enable: True
+      k: 8
+      subset_source: mu_topk     # use precomputed μ for top-k (chess-rl-C224 style)
+      iterative: False
+      penalty: -1.0
+```
+
+## Train
+
+```bash
+cd vam-agent
+export WANDB_API_KEY=...
+
+# Multi-turn full game with VAM
+sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY sbatch_vam_chess_train_smoke.slurm
+
+# chesslesson 170 tasks (multi-turn)
+sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY sbatch_chesslesson_train_smoke.slurm
+
+# Single-turn puzzle data with VAM (μ top-k)
+sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY sbatch_vam_lichess_puzzle_smoke.slurm
+```
+
+Override VAM knobs:
+```bash
+sbatch --export=ALL,WANDB_API_KEY=...,VAM_K=12,VAM_ITERATIVE=True,VAM_SOURCE=stockfish,STOCKFISH_BIN=/path/to/stockfish \
+    sbatch_vam_chess_train_smoke.slurm
+```
+
+## Phase 2 baseline (no training)
+
+Base Qwen2.5-7B-Instruct zero-shot on chesslesson 170 tasks:
+
+```
+overall acc          0.126  (22/175)
+parse_ok_rate        0.971
+single-move acc      0.083  (4/48 lessons)
+multi-move acc       0.015  (1/67 lessons)   ← multi-step solving floor ≈ 0
+coord drill acc      0.283  (~17/60)
+
+By move budget:
+  1 move:  8.3%
+  2 move:  0.0%
+  3 move: 20.0%   (1 of 5 — outlier)
+  4-9:     0%
+```
+
+After RL training: target is to move multi-move acc from 1.5% → 30%+.
+
+---
 
 ## Roadmap
 
-Phase 2: multi-turn rollout, trajectory-level reward, asymmetric agents (RAG opponent), Lichess-Practice-style curriculum.
+- **Track A (vam-chess)**: Lichess-pedagogy curriculum (mate → tactics → endgame), retrain teacher with theme-stratified data.
+- **Track B (vam-agent)**: chesslesson + chess/WhiteVsRandom training with VAM, then asymmetric self-play (RAG opponent, dual trainable actors).
+
+---
 
 ## License
 
 Apache 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Both `vam-chess/` and `vam-agent/` are vendored from upstream Apache-2.0 projects; original copyrights are preserved in their respective `LICENSE` / `Notice.txt` files.

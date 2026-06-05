@@ -1,0 +1,31 @@
+# Interactive H100 shell with the `chess` venv already activated.
+#
+# From login node:
+#   mkdir -p $HOME/verl-agent/condor_out/{output,error,log}
+#   condor_submit_bid 50 -interactive $HOME/verl-agent/recipe/hgpo/interactive_h100.sub
+#
+# After the job starts you land in a bash shell on the GPU node. Quick checks:
+#   python recipe/hgpo/test_env.py
+#   nvidia-smi
+#   python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+
+universe = vanilla
+
+initialdir = $HOME/verl-agent
+executable = /bin/bash
+
+output = condor_out/output/interactive_h100.$(Cluster).$(Process).out
+error  = condor_out/error/interactive_h100.$(Cluster).$(Process).err
+log    = condor_out/log/interactive_h100.$(Cluster).$(Process).log
+
+request_cpus   = 8
+request_memory = 64G
+request_gpus   = 1
+request_disk   = 50G
+requirements   = (TARGET.CUDADeviceName == "NVIDIA H100")
+
+arguments = -l -c "source $HOME/envs/chess/bin/activate && cd $HOME/verl-agent && export PYTHONPATH=$HOME/verl-agent:\${PYTHONPATH} && export TMPDIR=$HOME/fast/tmp && mkdir -p \"\${TMPDIR}\" && echo 'chess venv:' \"\$(which python)\" && nvidia-smi --query-gpu=index,name,memory.total --format=csv && exec bash -l"
+
+environment = "HOME=$HOME"
+
+queue

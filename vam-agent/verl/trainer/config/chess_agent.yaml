@@ -1,0 +1,40 @@
+defaults:
+  - ppo_trainer
+  - _self_
+
+env:
+  env_name: chess/WhiteVsRandom
+  seed: 0
+  max_steps: 128
+  history_length: 2
+  chess:
+    max_agent_plies: 100
+    vam:
+      # Verbalized Action Masking (chess-rl-C224 paper style).
+      # When enable=True, every White-to-move obs gets an extra line
+      #   "Allowed moves (UCI): m1, m2, ..."
+      # and the model is penalised (`penalty`) for picking a legal-but-out-of-
+      # subset move (the board does NOT advance on a VAM violation, so the
+      # episode continues until a valid pick or budget exhaustion).
+      enable: False
+      k: 8                      # subset size
+      iterative: False          # if True, model's prior in-subset picks get removed
+      subset_source: random     # 'random' | 'stockfish'
+      penalty: -1.0             # reward for out-of-subset move
+      stockfish_path: ""        # required if subset_source=stockfish
+      stockfish_depth: 1        # SF MultiPV ranking depth
+
+data:
+  train_files: ~/data/verl-agent/text/train.parquet
+  val_files: ~/data/verl-agent/text/test.parquet
+  train_batch_size: 16
+  val_batch_size: 16
+  max_prompt_length: 4096
+  max_response_length: 512
+  return_raw_chat: True
+  filter_overlong_prompts: True
+  truncation: left
+
+trainer:
+  project_name: verl-chess
+  experiment_name: chess_ppo

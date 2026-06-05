@@ -1,0 +1,25 @@
+# Env smoke test for the `chess` venv on one H100.
+# Submit from anywhere:
+#   mkdir -p $HOME/verl-agent/condor_out/{output,error,log}
+#   condor_submit_bid 50 $HOME/verl-agent/recipe/hgpo/test_env.sub
+# Watch:  condor_q ; tail -f condor_out/output/test_env.*.out
+
+universe = vanilla
+
+initialdir = $HOME/verl-agent
+executable = /bin/bash
+
+output = condor_out/output/test_env.$(Cluster).$(Process).out
+error  = condor_out/error/test_env.$(Cluster).$(Process).err
+log    = condor_out/log/test_env.$(Cluster).$(Process).log
+
+request_cpus   = 8
+request_memory = 64G
+request_gpus   = 1
+request_disk   = 50G
+requirements   = (TARGET.CUDADeviceName == "NVIDIA H100")
+
+arguments   = $HOME/verl-agent/recipe/hgpo/test_env.sh
+environment = "HOME=$HOME"
+
+queue

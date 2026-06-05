@@ -1,0 +1,41 @@
+defaults:
+  - ppo_trainer
+  - _self_
+
+env:
+  env_name: lichess_puzzle/Curriculum
+  seed: 0
+  max_steps: 1                  # single-turn puzzle (one action ends the episode)
+  history_length: 0
+  lichess_puzzle:
+    # List of chess-rl-C224 schema parquet files (each row = 1 puzzle with
+    # reward_model = {fen, ground_truth, legal_moves_uci, move_expected_scores_json, ...}).
+    # The env samples random rows on each reset.
+    parquets:
+      - ${oc.env:HOME}/chess/chess-rl-C224/data/chess_puzzles_chessr1_aligned_sharded_baseline/train_0.parquet
+      - ${oc.env:HOME}/chess/chess-rl-C224/data/chess_puzzles_chessr1_aligned_sharded_baseline/train_1.parquet
+    vam:
+      # Verbalized Action Masking on top of pre-graded puzzles.
+      # subset_source='mu_topk' uses the precomputed Stockfish μ table to pick
+      #   the top-k moves by μ — most principled, matches paper VAM.
+      # subset_source='random'  picks a uniform random k-subset.
+      enable: False
+      k: 8
+      iterative: False
+      subset_source: mu_topk
+      penalty: -1.0
+
+data:
+  train_files: ~/data/verl-agent/text/train.parquet
+  val_files: ~/data/verl-agent/text/test.parquet
+  train_batch_size: 16
+  val_batch_size: 16
+  max_prompt_length: 4096
+  max_response_length: 512
+  return_raw_chat: True
+  filter_overlong_prompts: True
+  truncation: left
+
+trainer:
+  project_name: verl-lichess-puzzle
+  experiment_name: lichess_puzzle_ppo

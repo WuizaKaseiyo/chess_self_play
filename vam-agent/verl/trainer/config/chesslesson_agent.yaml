@@ -1,0 +1,34 @@
+defaults:
+  - ppo_trainer
+  - _self_
+
+env:
+  env_name: chesslesson/LichessLearn
+  seed: 0
+  # multi-turn online: one move per turn. The worker (LessonStepper) ends the
+  # episode early on success/failure; this is the hard cap for unsolved lessons.
+  # Coordinate tasks finish in a single step regardless.
+  max_steps: 8
+  # 0: the board FEN is self-describing each turn, and the model already sees the
+  # prior turns in the rollout transcript, so no extra embedded history needed.
+  history_length: 0
+  chesslesson:
+    include_chess: True
+    include_coord: True
+    # optional board under each FEN line: null (FEN-only), ascii, or unicode
+    board_repr: null
+
+data:
+  train_files: ~/data/verl-agent/text/train.parquet
+  val_files: ~/data/verl-agent/text/test.parquet
+  train_batch_size: 16
+  val_batch_size: 16
+  max_prompt_length: 4096
+  max_response_length: 512
+  return_raw_chat: True
+  filter_overlong_prompts: True
+  truncation: left
+
+trainer:
+  project_name: verl-chesslesson
+  experiment_name: chesslesson_ppo
