@@ -1,17 +1,17 @@
 # chess_self_play
 
-Research repo for chess-RL with LLM agents — two complementary training mechanisms.
+Research repo for chess-RL with LLM agents — two parallel training methods.
 
-| Phase | Mechanism | Subdir | Status |
+| Method | Approach | Subdir | Status |
 |---|---|---|---|
-| **Phase 1** | vanilla **verl** + Chess-R1 puzzle data + **On-Policy Distillation (OPD)** | [`verl-vam-chess/`](verl-vam-chess/) | ✅ trained, full report |
-| **Phase 2** | **verl-agent** + new chesslesson dataset (multi-turn, VAM-aware) | [`verl-agent-vam-agent/`](verl-agent-vam-agent/) | 🟡 baselines done, training in progress |
+| **Method A** | vanilla **verl** + Chess-R1 puzzle data + **On-Policy Distillation (OPD)** | [`verl-vam-chess/`](verl-vam-chess/) | ✅ trained, full report |
+| **Method B** | **verl-agent** + new chesslesson dataset (multi-turn, VAM-aware) | [`verl-agent-vam-agent/`](verl-agent-vam-agent/) | 🟡 baselines done, training in progress |
 
 ---
 
-## Key mechanisms
+## Two methods
 
-### 1. verl + Chess-R1 data + OPD distillation (Phase 1, `verl-vam-chess/`)
+### 1. verl + Chess-R1 data + OPD distillation (Method A, `verl-vam-chess/`)
 
 ```
 Lichess puzzle DB ─→ Chess-R1 paper preprocess ─→ Stockfish d=14 μ-grading
@@ -32,7 +32,7 @@ Single-step puzzle: model sees FEN + legal_moves, picks one UCI; reward = μ fro
 
 **Result**: 3B student reaches puzzle pass@8 = **0.476** vs paper's 3B baseline 0.425, with **~16× fewer samples**.
 
-### 2. verl-agent + chesslesson dataset (Phase 2, `verl-agent-vam-agent/`)
+### 2. verl-agent + chesslesson dataset (Method B, `verl-agent-vam-agent/`)
 
 ```
 chesslesson (170 task)         chess/WhiteVsRandom           lichess_puzzle (Chess-R1)
@@ -74,24 +74,24 @@ chess_self_play/
 ├── README.md              ← this file
 ├── LICENSE / NOTICE       ← Apache 2.0
 │
-├── scripts/               ← Phase 1 sbatch launchers
+├── scripts/               ← Method A sbatch launchers
 │   ├── sbatch_train_teacher_7b.slurm
 │   ├── sbatch_train_distill_3b.slurm
 │   ├── sbatch_eval_passk.slurm
 │   ├── sbatch_eval_fullgame.slurm
 │   └── sbatch_eval_h2h.slurm
 │
-├── results/               ← Phase 1 eval artifacts (pass@k JSONs, full-game PGNs, h2h)
-├── progress_report/       ← Phase 1 full writeup (md + html with SVG charts)
+├── results/               ← Method A eval artifacts (pass@k JSONs, full-game PGNs, h2h)
+├── progress_report/       ← Method A full writeup (md + html with SVG charts)
 │
-├── verl-vam-chess/        ← Phase 1 framework + recipe (vanilla verl + chess recipe)
+├── verl-vam-chess/        ← Method A framework + recipe (vanilla verl + chess recipe)
 │   ├── verl/              upstream verl
 │   ├── recipe/chess/      chess RL reward fn + prompt templates
 │   ├── recipe/chess_distill/  on-policy distillation recipe
 │   ├── scripts/           data prep, eval scripts
 │   └── train_chess.sh     main training entry
 │
-└── verl-agent-vam-agent/  ← Phase 2 framework + envs + VAM
+└── verl-agent-vam-agent/  ← Method B framework + envs + VAM
     ├── verl/              upstream verl-agent
     ├── agent_system/      EnvironmentManager + prompts
     ├── chess_game/
@@ -111,18 +111,18 @@ chess_self_play/
 ## Setup
 
 ```bash
-# 1. Conda env (one env serves both phases)
+# 1. Conda env (one env serves both methods)
 conda create -n chess python=3.10 -y
 conda activate chess
 
-# 2. Phase 1 deps
+# 2. Method A deps
 cd verl-vam-chess
 pip install -r requirements.txt
 pip install -r requirements-cuda.txt    # flash-attn
 pip install vllm==0.10.0
 pip install -e .                         # install verl in editable mode
 
-# 3. Phase 2 deps (adds verl-agent + env-specific deps)
+# 3. Method B deps (adds verl-agent + env-specific deps)
 cd ../verl-agent-vam-agent
 pip install -r requirements.txt
 pip install -e .                         # install verl-agent
@@ -140,11 +140,11 @@ huggingface-cli download Qwen/Qwen2.5-3B-Instruct --local-dir $HOME/models/Qwen2
 # 6. WandB
 export WANDB_API_KEY=...
 
-# 7. Phase 1 puzzle data (Chess-R1 aligned + SF μ-grading, ~5 GB, hours to build)
+# 7. Method A puzzle data (Chess-R1 aligned + SF μ-grading, ~5 GB, hours to build)
 cd verl-vam-chess && python scripts/build_chessr1_aligned_dataset.py \
     --out-dir data/chess_puzzles_chessr1_aligned_sharded_baseline
 
-# Phase 2 data is bundled (chess_game/chesslesson/instructions.jsonl).
+# Method B data is bundled (chess_game/chesslesson/instructions.jsonl).
 ```
 
 A Dockerfile is provided at `verl-vam-chess/Dockerfile`.
@@ -153,7 +153,7 @@ A Dockerfile is provided at `verl-vam-chess/Dockerfile`.
 
 ## Training scripts
 
-### Phase 1 — Teacher + Distillation (verl-vam-chess)
+### Method A — Teacher + Distillation (verl-vam-chess)
 
 ```bash
 # A. Train 7B teacher (~640 steps on 4× H100, Pass@k GRPO)
@@ -182,9 +182,9 @@ sbatch --export=ALL,MODEL_A=<a>,MODEL_B=<b>,OUT_DIR=results/x_h2h \
     scripts/sbatch_eval_h2h.slurm
 ```
 
-### Phase 2 — verl-agent training (verl-agent-vam-agent)
+### Method B — verl-agent training (verl-agent-vam-agent)
 
-All Phase 2 sbatch must be submitted **from** `verl-agent-vam-agent/`
+All Method B sbatch must be submitted **from** `verl-agent-vam-agent/`
 so `$SLURM_SUBMIT_DIR` resolves correctly.
 
 ```bash
@@ -211,7 +211,7 @@ sbatch sbatch_eval_chesslesson_base.slurm           # single-turn JSON paradigm
 sbatch sbatch_eval_chesslesson_base_multiturn.slurm # multi-turn paradigm (matches HGPO training)
 ```
 
-### VAM config block (Phase 2)
+### VAM config block (Method B)
 
 Either env can run with VAM enabled by passing config overrides:
 
@@ -240,7 +240,7 @@ python tests/test_vam_lichess_puzzle_env.py   # lichess_puzzle env, 7 unit tests
 
 ## Results
 
-### Phase 1 puzzle pass@k (Chess-R1 held-out test set, 10k positions)
+### Method A puzzle pass@k (Chess-R1 held-out test set, 10k positions)
 
 | Model | Pass@1 | Pass@8 | Train samples |
 |---|---|---|---|
@@ -251,7 +251,7 @@ python tests/test_vam_lichess_puzzle_env.py   # lichess_puzzle env, 7 unit tests
 
 Full report + charts: [`progress_report/chess_distill_summary.md`](progress_report/chess_distill_summary.md).
 
-### Phase 2 chesslesson baseline (no training)
+### Method B chesslesson baseline (no training)
 
 Qwen2.5-7B-Instruct zero-shot on 175 tasks (single-turn paradigm):
 
@@ -272,10 +272,10 @@ and will be the proper anchor for the post-training comparison.
 
 ## Caveats
 
-- Phase 1 pass@k is in-distribution (train + test from Chess-R1). Both
+- Method A pass@k is in-distribution (train + test from Chess-R1). Both
   trained models lose 0/50 to Stockfish at depth 1 in full-game eval —
-  puzzle skill ≠ chess strength. This is the main motivation for Phase 2.
-- Phase 1 distill-vs-teacher h2h: distill "wins" 56/80 of completed games,
+  puzzle skill ≠ chess strength. This is part of why Method B exists.
+- Method A distill-vs-teacher h2h: distill "wins" 56/80 of completed games,
   but ~49 wins came from teacher format failures (truncation mid-`<think>`).
   Pure-chess strength ratio is closer to 37/63.
 
