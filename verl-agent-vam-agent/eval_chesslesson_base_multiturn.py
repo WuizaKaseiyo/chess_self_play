@@ -86,12 +86,20 @@ class Episode:
     parse_ok_last: bool = True
     last_action: str = ""
 
-    def init_chat(self) -> None:
+    def init_chat(self) -> bool:
         """Build the first user message exactly as verl-agent's
-        ChessLessonWorker would after env.reset()."""
+        ChessLessonWorker would after env.reset().
+        Returns False if the lesson can't be initialised (missing spec)
+        and should be skipped from the eval pool."""
         if self.kind == "lesson":
             spec = SPECS.get(self.task["id"])
-            assert spec is not None, f"reward_specs.json missing id={self.task['id']!r}"
+            if spec is None:
+                # Some lesson ids (e.g. fork-*) live in instructions.jsonl but
+                # not in reward_specs.json — skip them rather than crash.
+                self.done = True
+                self.success = False
+                self.final_reward = 0.0
+                return False
             self.stepper = LessonStepper(spec)
             self.budget = int(self.task.get("meta", {}).get("nbMoves") or 1)
             self.apples_seen_init = list(self.task.get("meta", {}).get("apples") or [])
@@ -105,6 +113,7 @@ class Episode:
             self.budget = 1
             initial = build_puzzle_prompt(self.task)
             self.messages = [{"role": "user", "content": initial}]
+        return True
 
 
 def step_episode(ep: Episode, response_text: str, max_turns_cap: int) -> None:
@@ -253,14 +262,19 @@ def main():
 
     # Build episode pool
     episodes: list[Episode] = []
+    skipped: list[str] = []
     for t in lessons:
         ep = Episode(task=t, kind="lesson")
-        ep.init_chat()
+        if not ep.init_chat():
+            skipped.append(t["id"])
+            continue
         episodes.append(ep)
     for t in coords:
         ep = Episode(task=t, kind="coord")
         ep.init_chat()
         episodes.append(ep)
+    if skipped:
+        print(f"[skip] {len(skipped)} lesson(s) missing reward spec: {skipped[:10]}{'...' if len(skipped)>10 else ''}")
     print(f"[pool] total episodes = {len(episodes)}")
 
     # Multi-turn synchronous batched rollout

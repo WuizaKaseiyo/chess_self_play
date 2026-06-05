@@ -794,7 +794,6 @@ def make_envs(config):
         vam_cfg = getattr(config.env.chess, "vam", None)
         if vam_cfg is not None:
             try:
-                from omegaconf import OmegaConf
                 env_kwargs["vam"] = OmegaConf.to_container(vam_cfg, resolve=True)
             except Exception:
                 env_kwargs["vam"] = dict(vam_cfg)
@@ -820,7 +819,6 @@ def make_envs(config):
         return envs, val_envs
     elif "lichess_puzzle" in config.env.env_name.lower():
         from chess_game import build_lichess_puzzle_envs, lichess_puzzle_projection
-        from omegaconf import OmegaConf
 
         # Pull parquet path list (list[str]) and vam block (dict)
         lp_cfg = config.env.lichess_puzzle
