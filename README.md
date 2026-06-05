@@ -1,15 +1,69 @@
 # chess_self_play
 
-Two-phase research repo for chess-RL with LLM agents.
+Research repo for chess-RL with LLM agents — two complementary training mechanisms.
 
-| Phase | Subdir | Framework | Tasks |
+| Phase | Mechanism | Subdir | Status |
 |---|---|---|---|
-| **Phase 1** (complete) | [`verl-vam-chess/`](verl-vam-chess/) | vanilla verl | Single-step puzzle RL — 7B teacher + 3B distillation |
-| **Phase 2** (in progress) | [`verl-agent-vam-agent/`](verl-agent-vam-agent/) | verl-agent | Multi-turn chess agents (full game / chesslesson / puzzle env) — with **Verbalized Action Masking (VAM)** |
+| **Phase 1** | vanilla **verl** + Chess-R1 puzzle data + **On-Policy Distillation (OPD)** | [`verl-vam-chess/`](verl-vam-chess/) | ✅ trained, full report |
+| **Phase 2** | **verl-agent** + new chesslesson dataset (multi-turn, VAM-aware) | [`verl-agent-vam-agent/`](verl-agent-vam-agent/) | 🟡 baselines done, training in progress |
 
-**Phase 1 headline**: 3B student distilled from 7B teacher reaches puzzle pass@8 = **0.476** vs paper's 0.425, with **~16× fewer training samples**.
+---
 
-**Phase 2 headline (so far)**: chesslesson base zero-shot ≈ **1.5% multi-move acc** (Qwen2.5-7B-Instruct). RL training is the next step.
+## Key mechanisms
+
+### 1. verl + Chess-R1 data + OPD distillation (Phase 1, `verl-vam-chess/`)
+
+```
+Lichess puzzle DB ─→ Chess-R1 paper preprocess ─→ Stockfish d=14 μ-grading
+                                                          ↓
+                                                ~100k single-step puzzles
+                                                          ↓
+                                            Pass@k GRPO (n=16, k=4) on Qwen2.5-7B
+                                                          ↓
+                                                   Teacher 7B
+                                                          ↓
+                                      On-Policy Distillation (per-token reverse-KL
+                                      as advantage, teacher reused in ref_policy slot)
+                                                          ↓
+                                                   Student 3B
+```
+
+Single-step puzzle: model sees FEN + legal_moves, picks one UCI; reward = μ from Stockfish table.
+
+**Result**: 3B student reaches puzzle pass@8 = **0.476** vs paper's 3B baseline 0.425, with **~16× fewer samples**.
+
+### 2. verl-agent + chesslesson dataset (Phase 2, `verl-agent-vam-agent/`)
+
+```
+chesslesson (170 task)         chess/WhiteVsRandom           lichess_puzzle (Chess-R1)
+   ↓                                ↓                                ↓
+ChessLessonWorker               ChessWorker                  LichessPuzzleWorker
+(multi-turn online,             (multi-turn full game         (single-turn puzzle,
+ LessonStepper one              vs random Black)              μ-table reward)
+ move per turn)                       ↓                                ↓
+   ↓                            with optional VAM                  with optional
+   ↓                            (random / stockfish               VAM mu_topk
+   ↓                             top-k subset)                    (paper-style)
+   ↓                                  ↓                                ↓
+                          ┌────────────────────────────────┐
+                          │  HGPO (verl-agent's            │
+                          │  hierarchical-group GRPO)      │
+                          │  multi-turn rollout +          │
+                          │  step-level advantage          │
+                          └────────────────────────────────┘
+```
+
+Three environments, all gym-style `reset/step`, all VAM-aware (chess-rl-C224 paper
+verbalized action masking: optionally expose a subset of `k` allowed moves in the
+prompt, penalise out-of-subset picks).
+
+**Multi-turn data flow**: each `env.step(action)` advances the lesson by one ply
+(LessonStepper applies model's UCI + any scripted opponent reply), then the
+worker re-renders the board and asks for the next move. Reward is binary 0/1 on
+the terminal turn. The whole chat history accumulates as the rollout context.
+
+**Baseline (no training)**: Qwen2.5-7B-Instruct zero-shot ≈ **1.5% multi-move acc**
+on chesslesson lessons. RL training is what moves this number up.
 
 ---
 
@@ -17,194 +71,213 @@ Two-phase research repo for chess-RL with LLM agents.
 
 ```
 chess_self_play/
-├── README.md            ← this file
-├── LICENSE / NOTICE     ← Apache 2.0
-├── scripts/             ← Phase 1 sbatch launchers (verl-vam-chess style)
-├── results/             ← Phase 1 distill eval artifacts (pass@k, full-game PGNs, h2h)
-├── progress_report/     ← Phase 1 written report (md + html with charts)
-├── verl-vam-chess/           ← Phase 1 vendored upstream (vanilla verl + chess recipe)
-└── verl-agent-vam-agent/           ← Phase 2 vendored upstream (verl-agent + chess envs + VAM)
+├── README.md              ← this file
+├── LICENSE / NOTICE       ← Apache 2.0
+│
+├── scripts/               ← Phase 1 sbatch launchers
+│   ├── sbatch_train_teacher_7b.slurm
+│   ├── sbatch_train_distill_3b.slurm
+│   ├── sbatch_eval_passk.slurm
+│   ├── sbatch_eval_fullgame.slurm
+│   └── sbatch_eval_h2h.slurm
+│
+├── results/               ← Phase 1 eval artifacts (pass@k JSONs, full-game PGNs, h2h)
+├── progress_report/       ← Phase 1 full writeup (md + html with SVG charts)
+│
+├── verl-vam-chess/        ← Phase 1 framework + recipe (vanilla verl + chess recipe)
+│   ├── verl/              upstream verl
+│   ├── recipe/chess/      chess RL reward fn + prompt templates
+│   ├── recipe/chess_distill/  on-policy distillation recipe
+│   ├── scripts/           data prep, eval scripts
+│   └── train_chess.sh     main training entry
+│
+└── verl-agent-vam-agent/  ← Phase 2 framework + envs + VAM
+    ├── verl/              upstream verl-agent
+    ├── agent_system/      EnvironmentManager + prompts
+    ├── chess_game/
+    │   ├── ray_envs.py                    chess/WhiteVsRandom (with VAM)
+    │   ├── chesslesson_envs.py            chesslesson/LichessLearn (multi-turn)
+    │   ├── lichess_puzzle_envs.py         lichess_puzzle/Curriculum (Chess-R1 + VAM)
+    │   ├── prompts_shared.py              shared prompt builders
+    │   └── chesslesson/                   115 lesson + 60 coord task data
+    ├── recipe/hgpo/                       HGPO algorithm + condor launchers
+    ├── tests/                             env-level smoke tests
+    ├── eval_chesslesson_base_multiturn.py  paradigm-aligned base eval
+    └── sbatch_*.slurm                     ← train + eval launchers (see below)
 ```
 
 ---
 
-# Phase 1 — Pass@k GRPO teacher + distillation (verl-vam-chess)
-
-## Environment setup
+## Setup
 
 ```bash
+# 1. Conda env (one env serves both phases)
 conda create -n chess python=3.10 -y
 conda activate chess
 
+# 2. Phase 1 deps
 cd verl-vam-chess
 pip install -r requirements.txt
-pip install -r requirements-cuda.txt
+pip install -r requirements-cuda.txt    # flash-attn
 pip install vllm==0.10.0
-pip install -e .
+pip install -e .                         # install verl in editable mode
 
-# Stockfish 16 (bmi2 build)
+# 3. Phase 2 deps (adds verl-agent + env-specific deps)
+cd ../verl-agent-vam-agent
+pip install -r requirements.txt
+pip install -e .                         # install verl-agent
+pip install chess>=1.10.0                # for python-chess in env
+
+# 4. Stockfish 16 (need bmi2 build, not the apt one)
 git clone https://github.com/official-stockfish/Stockfish.git /tmp/Stockfish
 cd /tmp/Stockfish/src && make -j build ARCH=x86-64-bmi2
 export STOCKFISH_BIN=/tmp/Stockfish/src/stockfish
 
-# Base models
+# 5. Base models
 huggingface-cli download Qwen/Qwen2.5-7B-Instruct --local-dir $HOME/models/Qwen2.5-7B-Instruct
 huggingface-cli download Qwen/Qwen2.5-3B-Instruct --local-dir $HOME/models/Qwen2.5-3B-Instruct
 
+# 6. WandB
 export WANDB_API_KEY=...
 
-# Puzzle data (Chess-R1 aligned + SF μ-grading, ~5 GB)
+# 7. Phase 1 puzzle data (Chess-R1 aligned + SF μ-grading, ~5 GB, hours to build)
 cd verl-vam-chess && python scripts/build_chessr1_aligned_dataset.py \
     --out-dir data/chess_puzzles_chessr1_aligned_sharded_baseline
+
+# Phase 2 data is bundled (chess_game/chesslesson/instructions.jsonl).
 ```
 
-## Train teacher (7B, Pass@k GRPO, ~640 steps on 4× H100)
+A Dockerfile is provided at `verl-vam-chess/Dockerfile`.
+
+---
+
+## Training scripts
+
+### Phase 1 — Teacher + Distillation (verl-vam-chess)
 
 ```bash
-sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY scripts/sbatch_train_teacher_7b.slurm
+# A. Train 7B teacher (~640 steps on 4× H100, Pass@k GRPO)
+sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY \
+    scripts/sbatch_train_teacher_7b.slurm
+# Smoke: append SMOKE=1 to --export.
 
-# Merge FSDP → HF
+# B. Merge FSDP → HF (required for distill)
 python -m verl.model_merger merge --backend fsdp \
     --local_dir $HOME/chess_rl_outputs/teacher_7b_passk_<ts>/actor/global_step_640 \
     --target_dir $HOME/models/chess_teacher_7b_step640
-```
 
-Result: pass@1=0.220, pass@8=0.514.
-
-## Train distill student (3B from 7B, ~300 steps)
-
-Per-token reverse-KL as advantage; teacher reuses the `ref_policy` worker slot.
-
-```bash
+# C. Train 3B student via on-policy distillation (~300 steps)
 sbatch --export=ALL,\
 TEACHER_CKPT=$HOME/models/chess_teacher_7b_step640,\
 WANDB_API_KEY=$WANDB_API_KEY \
     scripts/sbatch_train_distill_3b.slurm
+
+# D. Eval (pass@k / full-game vs Stockfish / model-vs-model h2h)
+sbatch --export=ALL,MODEL=<hf_dir>,OUT_PATH=results/x_passk.json \
+    scripts/sbatch_eval_passk.slurm
+sbatch --export=ALL,MODEL=<hf_dir>,OUT_DIR=results/x_fullgame,\
+OPPONENT_DEPTHS=5,STOCKFISH_BIN=$STOCKFISH_BIN \
+    scripts/sbatch_eval_fullgame.slurm
+sbatch --export=ALL,MODEL_A=<a>,MODEL_B=<b>,OUT_DIR=results/x_h2h \
+    scripts/sbatch_eval_h2h.slurm
 ```
 
-Result: pass@1=0.213, pass@8=0.476 (92.6% of teacher with ~16× fewer samples).
+### Phase 2 — verl-agent training (verl-agent-vam-agent)
 
-## Eval
+All Phase 2 sbatch must be submitted **from** `verl-agent-vam-agent/`
+so `$SLURM_SUBMIT_DIR` resolves correctly.
 
 ```bash
-# Puzzle pass@k
-sbatch --export=ALL,MODEL=<hf_dir>,OUT_PATH=results/x_passk.json scripts/sbatch_eval_passk.slurm
+cd verl-agent-vam-agent
 
-# Full game vs Stockfish
-sbatch --export=ALL,MODEL=<hf_dir>,OUT_DIR=results/x_fullgame,OPPONENT_DEPTHS=5,STOCKFISH_BIN=... \
-    scripts/sbatch_eval_fullgame.slurm
+# A. chesslesson HGPO training (multi-turn online puzzles)
+#    Data: 110 lesson + 60 coord (chess_game/chesslesson/instructions.jsonl)
+sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY \
+    sbatch_chesslesson_train_smoke.slurm
+# Knobs: TRAIN_DATA_SIZE, GROUP_SIZE, TOTAL_EPOCHS, HISTORY_LENGTH
 
-# Head-to-head model-vs-model
-sbatch --export=ALL,MODEL_A=<a>,MODEL_B=<b>,OUT_DIR=results/x_h2h scripts/sbatch_eval_h2h.slurm
+# B. chess/WhiteVsRandom HGPO training (full game vs random Black, optional VAM)
+sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY \
+    sbatch_vam_chess_train_smoke.slurm
+# Knobs: VAM_K, VAM_ITERATIVE, VAM_SOURCE (random|stockfish), STOCKFISH_BIN
+
+# C. lichess_puzzle/Curriculum training (Chess-R1 puzzle data with μ-top-k VAM)
+sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY \
+    sbatch_vam_lichess_puzzle_smoke.slurm
+# Knobs: VAM_K, VAM_ITERATIVE, VAM_SOURCE (mu_topk|random), PARQUETS
+
+# D. Zero-shot baselines (no training)
+sbatch sbatch_eval_chesslesson_base.slurm           # single-turn JSON paradigm
+sbatch sbatch_eval_chesslesson_base_multiturn.slurm # multi-turn paradigm (matches HGPO training)
 ```
 
-## Phase 1 results summary
+### VAM config block (Phase 2)
+
+Either env can run with VAM enabled by passing config overrides:
+
+```yaml
+env.chess.vam.enable=True env.chess.vam.k=8 env.chess.vam.subset_source=random
+env.chess.vam.iterative=False env.chess.vam.penalty=-1.0
+
+env.lichess_puzzle.vam.enable=True env.lichess_puzzle.vam.k=8
+env.lichess_puzzle.vam.subset_source=mu_topk    # uses precomputed Stockfish μ
+```
+
+`subset_source` options:
+- `random` — uniform k-subset of legal moves
+- `stockfish` — top-k by Stockfish MultiPV at `stockfish_depth` (chess env only)
+- `mu_topk` — top-k by precomputed μ table (lichess_puzzle env only; paper-style)
+
+### Env-level smoke (CPU only, no GPU)
+
+```bash
+cd verl-agent-vam-agent
+python tests/test_vam_chess_env.py            # chess env, 6 unit tests
+python tests/test_vam_lichess_puzzle_env.py   # lichess_puzzle env, 7 unit tests
+```
+
+---
+
+## Results
+
+### Phase 1 puzzle pass@k (Chess-R1 held-out test set, 10k positions)
 
 | Model | Pass@1 | Pass@8 | Train samples |
 |---|---|---|---|
-| Base 3B | 0.019 | 0.102 | — |
+| Base Qwen2.5-3B-Instruct | 0.019 | 0.102 | — |
 | Paper RL 3B (800 step) | ~0.20 | 0.425 | 1.64M |
-| **Distill 3B (300 step)** | **0.213** | **0.476** | **307k** |
+| **OPD-distilled 3B (300 step)** | **0.213** | **0.476** | **307k** |
 | Teacher 7B (640 step) | 0.220 | 0.514 | 1.31M |
 
-Full discussion + charts: [`progress_report/chess_distill_summary.md`](progress_report/chess_distill_summary.md).
+Full report + charts: [`progress_report/chess_distill_summary.md`](progress_report/chess_distill_summary.md).
 
-Caveats: Pass@k on puzzles ≠ real chess strength. Both models lose 0/50 to Stockfish d=1. Distill vs teacher h2h: distill "wins" 56/80 but ~49 wins were teacher format failures — pure-chess strength ratio ≈ 37/63. This motivates Phase 2.
+### Phase 2 chesslesson baseline (no training)
+
+Qwen2.5-7B-Instruct zero-shot on 175 tasks (single-turn paradigm):
+
+```
+overall acc      0.126   parse_ok_rate    0.971
+single-move acc  0.083   multi-move acc   0.015
+coord drill acc  ~0.283
+
+By move budget (lessons):
+  1 move:  8.3%   2 move: 0.0%   3 move: 20.0%   4-9: 0%
+```
+
+A paradigm-aligned multi-turn baseline (the same prompts the env uses during
+HGPO rollout) is being measured (`sbatch_eval_chesslesson_base_multiturn.slurm`)
+and will be the proper anchor for the post-training comparison.
 
 ---
 
-# Phase 2 — Multi-turn chess agents with VAM (verl-agent-vam-agent)
+## Caveats
 
-`verl-agent-vam-agent/` is a vendored fork of [verl-agent](https://github.com/langfengQ/verl-agent) (chess-agent variant) extended with **Verbalized Action Masking** (VAM, from chess-rl-C224 EMNLP paper).
-
-## Three environments, all VAM-aware
-
-| Env name | Type | Data | VAM subset source |
-|---|---|---|---|
-| `chess/WhiteVsRandom` | Multi-turn full game | runtime (start position + random Black) | `random` / `stockfish` (SF top-k via MultiPV) |
-| `chesslesson/LichessLearn` | Multi-turn online puzzle | 170 Lichess "Learn chess" tasks (110 lessons + 60 coord) | *not wired yet* |
-| `lichess_puzzle/Curriculum` | Single-turn puzzle | chess-rl-C224 schema parquet (SF μ-graded) | `mu_topk` (precomputed μ) / `random` |
-
-Algorithm: **HGPO** (verl-agent's hierarchical-group GRPO variant for long-horizon tasks).
-
-## Quick env smoke (CPU, no GPU)
-
-```bash
-cd verl-agent-vam-agent
-python tests/test_vam_chess_env.py          # chess env w/ VAM, 6 tests
-python tests/test_vam_lichess_puzzle_env.py # lichess_puzzle env w/ VAM, 7 tests
-```
-
-## VAM config (env.chess.vam.* / env.lichess_puzzle.vam.*)
-
-```yaml
-env:
-  chess:
-    vam:
-      enable: True
-      k: 8                       # subset size
-      iterative: False           # remove prior picks across plies
-      subset_source: random      # random | stockfish
-      penalty: -1.0              # reward for out-of-subset pick
-      stockfish_path: ""         # if subset_source=stockfish
-      stockfish_depth: 1
-  lichess_puzzle:
-    vam:
-      enable: True
-      k: 8
-      subset_source: mu_topk     # use precomputed μ for top-k (chess-rl-C224 style)
-      iterative: False
-      penalty: -1.0
-```
-
-## Train
-
-```bash
-cd verl-agent-vam-agent
-export WANDB_API_KEY=...
-
-# Multi-turn full game with VAM
-sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY sbatch_vam_chess_train_smoke.slurm
-
-# chesslesson 170 tasks (multi-turn)
-sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY sbatch_chesslesson_train_smoke.slurm
-
-# Single-turn puzzle data with VAM (μ top-k)
-sbatch --export=ALL,WANDB_API_KEY=$WANDB_API_KEY sbatch_vam_lichess_puzzle_smoke.slurm
-```
-
-Override VAM knobs:
-```bash
-sbatch --export=ALL,WANDB_API_KEY=...,VAM_K=12,VAM_ITERATIVE=True,VAM_SOURCE=stockfish,STOCKFISH_BIN=/path/to/stockfish \
-    sbatch_vam_chess_train_smoke.slurm
-```
-
-## Phase 2 baseline (no training)
-
-Base Qwen2.5-7B-Instruct zero-shot on chesslesson 170 tasks:
-
-```
-overall acc          0.126  (22/175)
-parse_ok_rate        0.971
-single-move acc      0.083  (4/48 lessons)
-multi-move acc       0.015  (1/67 lessons)   ← multi-step solving floor ≈ 0
-coord drill acc      0.283  (~17/60)
-
-By move budget:
-  1 move:  8.3%
-  2 move:  0.0%
-  3 move: 20.0%   (1 of 5 — outlier)
-  4-9:     0%
-```
-
-After RL training: target is to move multi-move acc from 1.5% → 30%+.
-
----
-
-## Roadmap
-
-- **Track A (verl-vam-chess)**: Lichess-pedagogy curriculum (mate → tactics → endgame), retrain teacher with theme-stratified data.
-- **Track B (verl-agent-vam-agent)**: chesslesson + chess/WhiteVsRandom training with VAM, then asymmetric self-play (RAG opponent, dual trainable actors).
+- Phase 1 pass@k is in-distribution (train + test from Chess-R1). Both
+  trained models lose 0/50 to Stockfish at depth 1 in full-game eval —
+  puzzle skill ≠ chess strength. This is the main motivation for Phase 2.
+- Phase 1 distill-vs-teacher h2h: distill "wins" 56/80 of completed games,
+  but ~49 wins came from teacher format failures (truncation mid-`<think>`).
+  Pure-chess strength ratio is closer to 37/63.
 
 ---
 
@@ -212,4 +285,6 @@ After RL training: target is to move multi-move acc from 1.5% → 30%+.
 
 Apache 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-Both `verl-vam-chess/` and `verl-agent-vam-agent/` are vendored from upstream Apache-2.0 projects; original copyrights are preserved in their respective `LICENSE` / `Notice.txt` files.
+Both `verl-vam-chess/` and `verl-agent-vam-agent/` are vendored from
+upstream Apache-2.0 projects; original copyrights are preserved in their
+respective `LICENSE` / `Notice.txt` files.
