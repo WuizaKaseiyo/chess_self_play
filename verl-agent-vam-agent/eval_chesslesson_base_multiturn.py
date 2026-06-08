@@ -47,11 +47,12 @@ from reward import SPECS
 _ACTION_RE = re.compile(r"<action>\s*(.*?)\s*</action>", re.DOTALL | re.IGNORECASE)
 
 
-def load_tasks() -> tuple[list[dict], list[dict]]:
+def load_tasks(coord_path: str | None = None) -> tuple[list[dict], list[dict]]:
     lessons = [json.loads(l) for l in (REPO / "chess_game/chesslesson/instructions.jsonl").open()]
     for r in lessons:
         r["kind"] = "lesson"
-    coords = [json.loads(l) for l in (REPO / "chess_game/chesslesson/coordinates.jsonl").open()]
+    cp = Path(coord_path) if coord_path else (REPO / "chess_game/chesslesson/coordinates.jsonl")
+    coords = [json.loads(l) for l in cp.open()]
     for r in coords:
         r["kind"] = "coord"
     return lessons, coords
@@ -233,6 +234,18 @@ def main():
     parser.add_argument("--max-tokens", type=int, default=512)
     parser.add_argument("--max-turns-cap", type=int, default=12,
                         help="Safety cap on lesson turns regardless of nbMoves budget.")
+    parser.add_argument("--max-budget", type=int, default=None,
+                        help="If set, only evaluate lessons with nbMoves <= this. "
+                             "Coord drills are always included. Matches the curriculum "
+                             "max_budget knob used during training.")
+    parser.add_argument("--coord-path", type=str, default=None,
+                        help="Override coord jsonl path (default: training set). "
+                             "Use this to point at coordinates_holdout.jsonl for "
+                             "generalization eval on unseen coord squares.")
+    parser.add_argument("--skip-lessons", action="store_true",
+                        help="Skip all lesson tasks (coord-only eval). Useful when "
+                             "you only want to measure generalization on unseen "
+                             "coord squares.")
     parser.add_argument("--tensor-parallel-size", type=int, default=1)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.85)
     args = parser.parse_args()
@@ -257,7 +270,17 @@ def main():
         n=1,
     )
 
-    lessons, coords = load_tasks()
+    lessons, coords = load_tasks(coord_path=args.coord_path)
+    if args.skip_lessons:
+        print(f"[skip-lessons] dropping {len(lessons)} lesson tasks (coord-only eval)")
+        lessons = []
+    if args.max_budget is not None:
+        before = len(lessons)
+        lessons = [l for l in lessons if int((l.get("meta") or {}).get("nbMoves") or 1) <= args.max_budget]
+        print(f"[filter] max_budget={args.max_budget}: lessons {before} → {len(lessons)} "
+              f"(coord drills always kept)")
+    if args.coord_path:
+        print(f"[coord-source] {args.coord_path}")
     print(f"[tasks] lessons={len(lessons)} coords={len(coords)}")
 
     # Build episode pool

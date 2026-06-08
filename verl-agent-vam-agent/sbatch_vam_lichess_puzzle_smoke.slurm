@@ -103,6 +103,11 @@ python3 -m verl.trainer.main_lichess_puzzle_agent \
     actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
+    algorithm.adv_estimator=hgpo \
+    +algorithm.hgpo.mode=mean_std_norm \
+    +algorithm.hgpo.weight_type=length \
+    +algorithm.hgpo.length_weight_alpha=1.0 \
+    +algorithm.hgpo.base_group=False \
     algorithm.use_kl_in_reward=False \
     algorithm.gamma=1.0 \
     trainer.logger=['console','wandb'] \

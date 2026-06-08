@@ -28,3 +28,4 @@ venv/
 *.swp
 *.tmp
 .ipynb_checkpoints/
+eval_results/

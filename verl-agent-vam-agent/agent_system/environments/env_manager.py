@@ -767,6 +767,14 @@ def make_envs(config):
             "include_chess": config.env.chesslesson.include_chess,
             "include_coord": config.env.chesslesson.include_coord,
         }
+        if "board_repr" in config.env.chesslesson:
+            env_kwargs["board_repr"] = config.env.chesslesson.board_repr
+        if "max_budget" in config.env.chesslesson:
+            env_kwargs["max_budget"] = config.env.chesslesson.max_budget
+        if "allowed_stages" in config.env.chesslesson:
+            env_kwargs["allowed_stages"] = config.env.chesslesson.allowed_stages
+        if "coord_only" in config.env.chesslesson:
+            env_kwargs["coord_only"] = config.env.chesslesson.coord_only
         _envs = build_chesslesson_envs(
             config.env.seed,
             config.data.train_batch_size,

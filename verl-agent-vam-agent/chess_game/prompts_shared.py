@@ -97,6 +97,26 @@ def _format_puzzle_body(task: dict) -> str:
     )
 
 
+def _render_coord_grid(marked_square: Optional[str], orientation: Optional[str]) -> str:
+    """Render an 8x8 ASCII grid matching the chesslesson baked board layout.
+
+    Marks `marked_square` with 'X' (for nameSquare mode), otherwise all '.'.
+    From Black's view the file labels reverse (h..a) and ranks count 1..8 from top.
+    Mirrors the layout used in coordinates.jsonl so the training prompt visually
+    matches the baked data.
+    """
+    files = list("hgfedcba") if orientation == "black" else list("abcdefgh")
+    ranks = list(range(1, 9)) if orientation == "black" else list(range(8, 0, -1))
+    lines = ["   " + " ".join(files)]
+    for r in ranks:
+        cells = []
+        for f in files:
+            sq = f"{f}{r}"
+            cells.append("X" if sq == (marked_square or "").lower() else ".")
+        lines.append(f"{r} |" + " ".join(cells))
+    return "\n".join(lines)
+
+
 def _format_coordinate_body(task: dict) -> str:
     mode = task.get("mode", "")
     square = task.get("square", "")
@@ -106,21 +126,26 @@ def _format_coordinate_body(task: dict) -> str:
     if mode == "nameSquare":
         return "\n".join(
             _prompt_lines(
-                f"Name the marked square{view}.",
-                fen=_marker_fen(square),
+                f"Name the marked square{view}. The square is marked with X. "
+                f"Answer with the square's algebraic name, e.g. <action>e4</action>.",
+                extra_lines=[_render_coord_grid(square, orient)],
             )
         )
     if mode == "findSquare":
         return "\n".join(
             _prompt_lines(
-                f"On an empty board{view}, locate square {square}. "
-                "Answer with col,row (1-indexed from the top-left of the view).",
-                fen=_EMPTY_FEN,
+                f"On an empty board{view}, where is square {square}? "
+                f"Answer col,row (1-indexed from the top-left of the view), "
+                f"e.g. <action>3,5</action>.",
+                extra_lines=[_render_coord_grid(None, orient)],
             )
         )
     if mode == "squareColor":
         return "\n".join(
-            _prompt_lines(f"Is square {square} a light square or a dark square?")
+            _prompt_lines(
+                f"Is square {square} a light square or a dark square? "
+                f"Answer <action>light</action> or <action>dark</action>."
+            )
         )
 
     first = (task.get("user") or "").strip().splitlines()[0]

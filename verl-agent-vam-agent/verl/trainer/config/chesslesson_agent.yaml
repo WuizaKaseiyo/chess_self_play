@@ -2,6 +2,23 @@ defaults:
   - ppo_trainer
   - _self_
 
+# Inline the algorithm.hgpo block (avoids cross-package hydra searchpath).
+# Mirrors recipe/hgpo/config/hgpo_trainer.yaml's defaults.
+algorithm:
+  hgpo:
+    mode: "mean_std_norm"
+    weight_type: "length"
+    length_weight_alpha: 1.0
+    base_group: false
+  filter_groups:
+    enable: False
+    metric: null
+    max_num_gen_batches: 0
+
+# HGPO trainer expects episode-level reward
+reward_model:
+  reward_manager: episode
+
 env:
   env_name: chesslesson/LichessLearn
   seed: 0
@@ -17,6 +34,9 @@ env:
     include_coord: True
     # optional board under each FEN line: null (FEN-only), ascii, or unicode
     board_repr: null
+    # Curriculum cap: max nbMoves for chess lessons (coord drills always in).
+    # null = no cap (170 tasks). Phase 1=1, 2=2, 3=4, 4=null.
+    max_budget: null
 
 data:
   train_files: ~/data/verl-agent/text/train.parquet

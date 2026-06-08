@@ -100,10 +100,37 @@ class ChessLessonWorker:
         # Only chess tasks that actually have a reward spec are scoreable.
         from reward import SPECS  # noqa: E402
         self._specs = SPECS
-        self.tasks = [
-            t for t in self.env.tasks
-            if t["kind"] != "chess" or t["id"] in SPECS
-        ]
+        # Optional curriculum filters (for stage-based curriculum):
+        #   max_budget       — cap chess lessons by nbMoves; coord always kept
+        #   allowed_stages   — comma-separated list of stage_keys to include
+        #                      (rook,bishop,queen,king,knight,pawn,capture,
+        #                       protection,combat,check1,outOfCheck,checkmate1,
+        #                       setup,castling,enpassant,stalemate,value,check2,fork)
+        #   coord_only       — drop ALL chess lessons; eval/train coord drills only
+        max_budget = env_kwargs.get("max_budget")
+        self.max_budget = int(max_budget) if max_budget else None
+        allowed = env_kwargs.get("allowed_stages")
+        if allowed and isinstance(allowed, str):
+            allowed = [s.strip() for s in allowed.split(",") if s.strip()]
+        self.allowed_stages = set(allowed) if allowed else None
+        self.coord_only = bool(env_kwargs.get("coord_only", False))
+
+        def keep(t):
+            if t["kind"] != "chess":
+                return True  # coord always in (unless dropped entirely below)
+            if self.coord_only:
+                return False
+            if t["id"] not in SPECS:
+                return False  # no reward spec → skip (fork-*)
+            if self.allowed_stages is not None and t.get("stage_key") not in self.allowed_stages:
+                return False
+            if self.max_budget is not None:
+                nb = int((t.get("meta") or {}).get("nbMoves") or 1)
+                if nb > self.max_budget:
+                    return False
+            return True
+
+        self.tasks = [t for t in self.env.tasks if keep(t)]
         self.n = len(self.tasks)
         self._cur = self.tasks[0]
         self._stepper = None  # set for chess tasks on reset
